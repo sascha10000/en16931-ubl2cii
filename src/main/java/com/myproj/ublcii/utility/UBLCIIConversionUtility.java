@@ -1,46 +1,50 @@
 /**
- * 
+ *
  */
 package com.myproj.ublcii.utility;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Serializable;
-import javax.xml.bind.JAXBException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
+import javax.annotation.Nonnull;
+import javax.annotation.WillClose;
+import javax.annotation.WillNotClose;
+import javax.annotation.concurrent.Immutable;
+
+import com.helger.cii.d16b.CIID16BCrossIndustryInvoiceTypeMarshaller;
 import com.helger.commons.error.list.ErrorList;
-import com.helger.jaxb.validation.WrappedCollectingValidationEventHandler;
-import com.helger.ubl21.UBL21Reader;
+import com.helger.commons.state.ESuccess;
+import com.helger.ubl21.UBL21Marshaller;
+
 import oasis.names.specification.ubl.schema.xsd.invoice_21.InvoiceType;
 import un.unece.uncefact.data.standard.crossindustryinvoice._100.CrossIndustryInvoiceType;
-import org.springframework.stereotype.Component;
 
 /**
- * @author
- * 
- *         Vartika Gupta
- *
+ * @author Vartika Gupta
+ * @author Philip Helger
  */
-@Component
-public class UBLCIIConversionUtility {
-	/**
-	 *
-	 * @param File
-	 * @param targetFile
-	 * @return
-	 * @throws JAXBException
-	 * @throws IOException
-	 * @throws IllegalStateException
-	 */
-	public void convertUBLtoCII(File file, File targetFile) throws JAXBException, IllegalStateException, IOException {
-		final InvoiceType aUBLInvoice = UBL21Reader.invoice()
-				.setValidationEventHandler(new WrappedCollectingValidationEventHandler(new ErrorList())).read(file);
-		final Serializable aCrossIndustryInvoice = new UBLToCII16BConverter().convertUBLToCII(aUBLInvoice,
-				new ErrorList());
-		final CrossIndustryInvoiceType aCIIInvoice = (CrossIndustryInvoiceType) aCrossIndustryInvoice;
-		// Parse XML and convert to domain model
-		final CII16BWriterBuilder<CrossIndustryInvoiceType> aWriter = CIID16BWriter.crossIndustryInvoice()
-				.setFormattedOutput(true);
-		aWriter.write(aCIIInvoice, targetFile);
-	}
+@Immutable
+public final class UBLCIIConversionUtility
+{
+  private UBLCIIConversionUtility ()
+  {}
+
+  @Nonnull
+  public static ESuccess convertUBLtoCII (@Nonnull @WillNotClose final InputStream aIS,
+                                          @Nonnull @WillClose final OutputStream aOS,
+                                          @Nonnull final ErrorList aErrorList)
+  {
+    // Read UBL 2.1
+    final InvoiceType aUBLInvoice = UBL21Marshaller.invoice ().setCollectErrors (aErrorList).read (aIS);
+    if (aUBLInvoice == null)
+      return ESuccess.FAILURE;
+
+    // Main conversion
+    final CrossIndustryInvoiceType aCrossIndustryInvoice = new UBLToCII16BConverter ().convertUBLToCII (aUBLInvoice, new ErrorList ());
+
+    // Write CII D16B XML
+    return new CIID16BCrossIndustryInvoiceTypeMarshaller ().setFormattedOutput (true)
+                                                           .setCollectErrors (aErrorList)
+                                                           .write (aCrossIndustryInvoice, aOS);
+  }
 }
