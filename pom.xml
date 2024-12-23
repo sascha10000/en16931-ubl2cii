@@ -18,26 +18,26 @@
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <parent>
     <groupId>com.helger</groupId>
     <artifactId>parent-pom</artifactId>
     <version>2.0.6</version>
   </parent>
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.myproj</groupId>
-	<artifactId>en16931-ubl2cii-parent-pom</artifactId>
-	<packaging>war</packaging>
-	<name>en16931-ubl2cii-parent-pom</name>
-	<version>1.1.0-SNAPSHOT</version>
-	
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>en16931-ubl2cii-parent-pom</artifactId>
+  <packaging>pom</packaging>
+  <name>en16931-ubl2cii-parent-pom</name>
+  <inceptionYear>2024</inceptionYear>
+  <version>1.1.0-SNAPSHOT</version>
+
   <properties>
     <phive-rules.version>3.2.2</phive-rules.version>
   </properties>
 
-	<dependencyManagement>
-	  <dependencies>
+  <dependencyManagement>
+    <dependencies>
       <dependency>
         <groupId>com.helger.commons</groupId>
         <artifactId>ph-commons-parent-pom</artifactId>
@@ -59,60 +59,22 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-	  </dependencies>
-	</dependencyManagement>
+    </dependencies>
+  </dependencyManagement>
 
-	<dependencies>
-    <dependency>
-      <groupId>com.helger.ubl</groupId>
-      <artifactId>ph-ubl21</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.helger.cii</groupId>
-      <artifactId>ph-cii-d16b</artifactId>
-    </dependency>
+  <modules>
+    <module>en16931-ubl2cii</module>
+  </modules>
 
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.helger.phive.rules</groupId>
-      <artifactId>phive-rules-en16931</artifactId>
-      <version>${phive-rules.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.xml.bind</groupId>
-      <artifactId>jaxb-impl</artifactId>
-      <scope>test</scope>
-    </dependency>
-	</dependencies>
-	
-	<build>
-    <resources>
-      <!-- Don't specify the targetPath because this leads to a broken JAR file 
-        in combination with the bundle plugin (absolute file paths in ZIP file) -->
-      <resource>
-        <directory>${basedir}/src/main/resources</directory>
-        <filtering>true</filtering>
-        <includes>
-          <include>**/*.properties</include>
-        </includes>
-      </resource>
-      <resource>
-        <directory>${basedir}/src/main/resources</directory>
-        <filtering>false</filtering>
-        <excludes>
-          <exclude>**/*.properties</exclude>
-        </excludes>  
-      </resource>
-    </resources>
-	</build>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <source>8</source>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
