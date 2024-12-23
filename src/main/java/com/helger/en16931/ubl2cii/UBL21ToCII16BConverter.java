@@ -15,9 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- *
- */
 package com.helger.en16931.ubl2cii;
 
 import java.math.BigDecimal;
@@ -60,11 +57,11 @@ import un.unece.uncefact.data.standard.unqualifieddatatype._100.TextType;
  *
  * @author Vartika Rastogi
  */
-public class UBLToCII16BConverter
+public class UBL21ToCII16BConverter
 {
   private static final String CII_DATE_FORMAT = "102";
 
-  public UBLToCII16BConverter ()
+  public UBL21ToCII16BConverter ()
   {}
 
   @Nullable

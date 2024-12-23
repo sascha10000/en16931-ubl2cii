@@ -15,9 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- *
- */
 package com.helger.en16931.ubl2cii;
 
 import java.io.InputStream;
@@ -41,15 +38,15 @@ import un.unece.uncefact.data.standard.crossindustryinvoice._100.CrossIndustryIn
  * @author Philip Helger
  */
 @Immutable
-public final class UBLCIIConversionUtility
+public final class UBLCIIConversionHelper
 {
-  private UBLCIIConversionUtility ()
+  private UBLCIIConversionHelper ()
   {}
 
   @Nonnull
-  public static ESuccess convertUBLtoCII (@Nonnull @WillNotClose final InputStream aIS,
-                                          @Nonnull @WillClose final OutputStream aOS,
-                                          @Nonnull final ErrorList aErrorList)
+  public static ESuccess convertUBL21InvoicetoCIID16B (@Nonnull @WillNotClose final InputStream aIS,
+                                                       @Nonnull @WillClose final OutputStream aOS,
+                                                       @Nonnull final ErrorList aErrorList)
   {
     // Read UBL 2.1
     final InvoiceType aUBLInvoice = UBL21Marshaller.invoice ().setCollectErrors (aErrorList).read (aIS);
@@ -57,7 +54,7 @@ public final class UBLCIIConversionUtility
       return ESuccess.FAILURE;
 
     // Main conversion
-    final CrossIndustryInvoiceType aCrossIndustryInvoice = new UBLToCII16BConverter ().convertUBLToCII (aUBLInvoice, new ErrorList ());
+    final CrossIndustryInvoiceType aCrossIndustryInvoice = new UBL21ToCII16BConverter ().convertUBLToCII (aUBLInvoice, new ErrorList ());
 
     // Write CII D16B XML
     return new CIID16BCrossIndustryInvoiceTypeMarshaller ().setFormattedOutput (true)
