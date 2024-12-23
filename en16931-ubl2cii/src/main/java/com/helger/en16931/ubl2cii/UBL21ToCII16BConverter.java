@@ -17,7 +17,6 @@
  */
 package com.helger.en16931.ubl2cii;
 
-import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -37,6 +36,7 @@ import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.Doc
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.InvoiceLineType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.ItemPropertyType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.ItemType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.MonetaryTotalType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.PaymentTermsType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxCategoryType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxTotalType;
@@ -53,9 +53,10 @@ import un.unece.uncefact.data.standard.unqualifieddatatype._100.QuantityType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.TextType;
 
 /**
- * UBL to CII 16B converter.
+ * UBL 2.1 to CII D16B converter.
  *
  * @author Vartika Rastogi
+ * @author Philip Helger
  */
 public final class UBL21ToCII16BConverter
 {
@@ -65,24 +66,55 @@ public final class UBL21ToCII16BConverter
   {}
 
   @Nonnull
-  private static String _createFormattedDate (@Nonnull final LocalDate aLocalDate)
+  private static String _createFormattedDateValue (@Nonnull final LocalDate aLocalDate)
   {
     final SimpleDateFormat aFormatter = new SimpleDateFormat ("yyyyMMdd");
-    final Date date = PDTFactory.createDate (aLocalDate);
-    return aFormatter.format (date);
+    final Date aDate = PDTFactory.createDate (aLocalDate);
+    return aFormatter.format (aDate);
   }
 
   @Nonnull
-  private static un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType _parseDate (final LocalDate aLocalDate)
+  private static un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType _createDate (@Nonnull final LocalDate aLocalDate)
   {
     final un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType aDTT = new un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType ();
     {
       final un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType.DateTimeString aDTS = new un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType.DateTimeString ();
       aDTS.setFormat (CII_DATE_FORMAT);
-      aDTS.setValue (_createFormattedDate (aLocalDate));
+      aDTS.setValue (_createFormattedDateValue (aLocalDate));
       aDTT.setDateTimeString (aDTS);
     }
     return aDTT;
+  }
+
+  @Nonnull
+  private static List <TextType> _convertTextType (@Nonnull final String sValue)
+  {
+    final List <TextType> aLstTT = new ArrayList <> ();
+    final TextType aTT = new TextType ();
+    aTT.setValue (sValue);
+    aLstTT.add (aTT);
+    return aLstTT;
+  }
+
+  @Nonnull
+  private static IDType _convertIDType (@Nonnull final com.helger.xsds.ccts.cct.schemamodule.IdentifierType aID)
+  {
+    final IDType aITG = new IDType ();
+    aITG.setSchemeID (aID.getSchemeID ());
+    aITG.setValue (aID.getValue ());
+    return aITG;
+  }
+
+  @Nonnull
+  private static List <AmountType> _convertAmountType (final com.helger.xsds.ccts.cct.schemamodule.AmountType aUBLAmount)
+  {
+    final List <AmountType> aLstATTPT = new ArrayList <> ();
+    final AmountType aATTPT = new AmountType ();
+    if (false)
+      aATTPT.setCurrencyID (aUBLAmount.getCurrencyID ());
+    aATTPT.setValue (aUBLAmount.getValue ());
+    aLstATTPT.add (aATTPT);
+    return aLstATTPT;
   }
 
   @Nonnull
@@ -100,7 +132,7 @@ public final class UBL21ToCII16BConverter
   }
 
   @Nonnull
-  private static List <SupplyChainTradeLineItemType> _convertInvoiceLine (final List <InvoiceLineType> aLstIL)
+  private static List <SupplyChainTradeLineItemType> _convertInvoiceLine (final List <oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.InvoiceLineType> aLstIL)
   {
     final List <SupplyChainTradeLineItemType> aLstSCTLIT = new ArrayList <> ();
     for (final InvoiceLineType aILT : aLstIL)
@@ -122,8 +154,7 @@ public final class UBL21ToCII16BConverter
       final ItemType aIT = aILT.getItem ();
       if (aIT.getStandardItemIdentification () != null)
       {
-        aTPT.setGlobalID (_convertIDType (aIT.getStandardItemIdentification ().getID ().getSchemeID (),
-                                          aIT.getStandardItemIdentification ().getIDValue ()));
+        aTPT.setGlobalID (_convertIDType (aIT.getStandardItemIdentification ().getID ()));
       }
 
       if (aIT.getSellersItemIdentification () != null)
@@ -176,8 +207,7 @@ public final class UBL21ToCII16BConverter
       final TradePriceType aLTPT = new TradePriceType ();
       if (aILT.getPrice () != null && aILT.getPrice ().getPriceAmount () != null)
       {
-        aLTPT.setChargeAmount (_convertAmountType (aILT.getPrice ().getPriceAmount ().getCurrencyID (),
-                                                   aILT.getPrice ().getPriceAmount ().getValue ()));
+        aLTPT.setChargeAmount (_convertAmountType (aILT.getPrice ().getPriceAmount ()));
       }
 
       aLTAT.setBuyerOrderReferencedDocument (aRDT);
@@ -194,20 +224,22 @@ public final class UBL21ToCII16BConverter
 
       // SpecifiedLineTradeSettlement
       final LineTradeSettlementType aLTST = new LineTradeSettlementType ();
-      final List <TradeTaxType> aLstTTT = new ArrayList <> ();
-      for (final TaxCategoryType aTCT : aILT.getItem ().getClassifiedTaxCategory ())
       {
-        final TradeTaxType aTTT = new TradeTaxType ();
-        aTTT.setTypeCode (aTCT.getTaxScheme ().getIDValue ());
-        aTTT.setCategoryCode (aTCT.getIDValue ());
-        aTTT.setRateApplicablePercent (aTCT.getPercentValue ());
-        aLstTTT.add (aTTT);
+        final List <TradeTaxType> aLstTTT = new ArrayList <> ();
+        for (final TaxCategoryType aTCT : aILT.getItem ().getClassifiedTaxCategory ())
+        {
+          final TradeTaxType aTTT = new TradeTaxType ();
+          aTTT.setTypeCode (aTCT.getTaxScheme ().getIDValue ());
+          aTTT.setCategoryCode (aTCT.getIDValue ());
+          aTTT.setRateApplicablePercent (aTCT.getPercentValue ());
+          aLstTTT.add (aTTT);
+        }
+        aLTST.setApplicableTradeTax (aLstTTT);
       }
       final TradeSettlementLineMonetarySummationType aTSLMST = new TradeSettlementLineMonetarySummationType ();
       if (aILT.getLineExtensionAmount () != null)
       {
-        aTSLMST.setLineTotalAmount (_convertAmountType (aILT.getLineExtensionAmount ().getCurrencyID (),
-                                                        aILT.getLineExtensionAmount ().getValue ()));
+        aTSLMST.setLineTotalAmount (_convertAmountType (aILT.getLineExtensionAmount ()));
       }
 
       if (aILT.getAccountingCostValue () != null)
@@ -219,7 +251,6 @@ public final class UBL21ToCII16BConverter
         aLTST.setReceivableSpecifiedTradeAccountingAccount (aLstTAATL);
       }
 
-      aLTST.setApplicableTradeTax (aLstTTT);
       aLTST.setSpecifiedTradeSettlementLineMonetarySummation (aTSLMST);
       aISCTLI.setSpecifiedLineTradeSettlement (aLTST);
 
@@ -239,18 +270,7 @@ public final class UBL21ToCII16BConverter
         !aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyIdentification ().isEmpty () &&
         aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyIdentification ().get (0).getID () != null)
     {
-      aLstIT.add (_convertIDType (aUBLInvoice.getAccountingSupplierParty ()
-                                             .getParty ()
-                                             .getPartyIdentification ()
-                                             .get (0)
-                                             .getID ()
-                                             .getSchemeID (),
-                                  aUBLInvoice.getAccountingSupplierParty ()
-                                             .getParty ()
-                                             .getPartyIdentification ()
-                                             .get (0)
-                                             .getID ()
-                                             .getValue ()));
+      aLstIT.add (_convertIDType (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyIdentification ().get (0).getID ()));
       aTPT.setID (aLstIT);
     }
 
@@ -274,17 +294,7 @@ public final class UBL21ToCII16BConverter
                                               .getRegistrationNameValue ());
       if (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyLegalEntity ().get (0).getCompanyID () != null)
       {
-        aLOT.setID (_convertIDType (aUBLInvoice.getAccountingSupplierParty ()
-                                               .getParty ()
-                                               .getPartyLegalEntity ()
-                                               .get (0)
-                                               .getCompanyID ()
-                                               .getSchemeID (),
-                                    aUBLInvoice.getAccountingSupplierParty ()
-                                               .getParty ()
-                                               .getPartyLegalEntity ()
-                                               .get (0)
-                                               .getCompanyIDValue ()));
+        aLOT.setID (_convertIDType (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyLegalEntity ().get (0).getCompanyID ()));
       }
 
       final TradeAddressType aTAT = new TradeAddressType ();
@@ -389,8 +399,7 @@ public final class UBL21ToCII16BConverter
     {
       final List <UniversalCommunicationType> aLstUCT = new ArrayList <> ();
       final UniversalCommunicationType aUCT = new UniversalCommunicationType ();
-      aUCT.setURIID (_convertIDType (aUBLInvoice.getAccountingSupplierParty ().getParty ().getEndpointID ().getSchemeID (),
-                                     aUBLInvoice.getAccountingSupplierParty ().getParty ().getEndpointID ().getValue ()));
+      aUCT.setURIID (_convertIDType (aUBLInvoice.getAccountingSupplierParty ().getParty ().getEndpointID ()));
       aLstUCT.add (aUCT);
       aTPT.setURIUniversalCommunication (aLstUCT);
     }
@@ -406,14 +415,7 @@ public final class UBL21ToCII16BConverter
                                              .getPartyTaxScheme ()
                                              .get (0)
                                              .getTaxScheme ()
-                                             .getID ()
-                                             .getValue (),
-                                  aUBLInvoice.getAccountingSupplierParty ()
-                                             .getParty ()
-                                             .getPartyTaxScheme ()
-                                             .get (0)
-                                             .getCompanyID ()
-                                             .getValue ()));
+                                             .getID ()));
       aLstTRT.add (aTRT);
       aTPT.setSpecifiedTaxRegistration (aLstTRT);
     }
@@ -429,18 +431,7 @@ public final class UBL21ToCII16BConverter
         !aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyIdentification ().isEmpty ())
     {
       final List <IDType> aLstBIT = new ArrayList <> ();
-      aLstBIT.add (_convertIDType (aUBLInvoice.getAccountingCustomerParty ()
-                                              .getParty ()
-                                              .getPartyIdentification ()
-                                              .get (0)
-                                              .getID ()
-                                              .getSchemeID (),
-                                   aUBLInvoice.getAccountingCustomerParty ()
-                                              .getParty ()
-                                              .getPartyIdentification ()
-                                              .get (0)
-                                              .getID ()
-                                              .getValue ()));
+      aLstBIT.add (_convertIDType (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyIdentification ().get (0).getID ()));
       aBTPT.setID (aLstBIT);
     }
 
@@ -463,17 +454,7 @@ public final class UBL21ToCII16BConverter
                                                .getRegistrationNameValue ());
       if (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyLegalEntity ().get (0).getCompanyID () != null)
       {
-        aBLOT.setID (_convertIDType (aUBLInvoice.getAccountingCustomerParty ()
-                                                .getParty ()
-                                                .getPartyLegalEntity ()
-                                                .get (0)
-                                                .getCompanyID ()
-                                                .getSchemeID (),
-                                     aUBLInvoice.getAccountingCustomerParty ()
-                                                .getParty ()
-                                                .getPartyLegalEntity ()
-                                                .get (0)
-                                                .getCompanyIDValue ()));
+        aBLOT.setID (_convertIDType (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyLegalEntity ().get (0).getCompanyID ()));
       }
     }
 
@@ -569,8 +550,7 @@ public final class UBL21ToCII16BConverter
     {
       final List <UniversalCommunicationType> aLstBUCT = new ArrayList <> ();
       final UniversalCommunicationType aBUCT = new UniversalCommunicationType ();
-      aBUCT.setURIID (_convertIDType (aUBLInvoice.getAccountingCustomerParty ().getParty ().getEndpointID ().getSchemeID (),
-                                      aUBLInvoice.getAccountingCustomerParty ().getParty ().getEndpointID ().getValue ()));
+      aBUCT.setURIID (_convertIDType (aUBLInvoice.getAccountingCustomerParty ().getParty ().getEndpointID ()));
       aLstBUCT.add (aBUCT);
       aBTPT.setURIUniversalCommunication (aLstBUCT);
     }
@@ -586,14 +566,7 @@ public final class UBL21ToCII16BConverter
                                               .getPartyTaxScheme ()
                                               .get (0)
                                               .getTaxScheme ()
-                                              .getID ()
-                                              .getValue (),
-                                   aUBLInvoice.getAccountingCustomerParty ()
-                                              .getParty ()
-                                              .getPartyTaxScheme ()
-                                              .get (0)
-                                              .getCompanyID ()
-                                              .getValue ()));
+                                              .getID ()));
       aLstBTRT.add (aBTRT);
       aBTPT.setSpecifiedTaxRegistration (aLstBTRT);
     }
@@ -611,8 +584,7 @@ public final class UBL21ToCII16BConverter
         aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getID () != null)
     {
       final List <IDType> aLstHTIT = new ArrayList <> ();
-      aLstHTIT.add (_convertIDType (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getID ().getSchemeID (),
-                                    aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getIDValue ()));
+      aLstHTIT.add (_convertIDType (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getID ()));
       aTPTHT.setID (aLstHTIT);
     }
 
@@ -663,7 +635,7 @@ public final class UBL21ToCII16BConverter
     if (!aUBLInvoice.getDelivery ().isEmpty () && aUBLInvoice.getDelivery ().get (0).getActualDeliveryDate () != null)
     {
       final SupplyChainEventType aSCET = new SupplyChainEventType ();
-      aSCET.setOccurrenceDateTime (_parseDate (aUBLInvoice.getDelivery ().get (0).getActualDeliveryDate ().getValueLocal ()));
+      aSCET.setOccurrenceDateTime (_createDate (aUBLInvoice.getDelivery ().get (0).getActualDeliveryDate ().getValueLocal ()));
       aHTDT.setActualDeliverySupplyChainEvent (aSCET);
     }
     return aHTDT;
@@ -703,11 +675,11 @@ public final class UBL21ToCII16BConverter
       final SpecifiedPeriodType aSPT = new SpecifiedPeriodType ();
       if (aUBLInvoice.getInvoicePeriod ().get (0).getStartDate () != null)
       {
-        aSPT.setStartDateTime (_parseDate (aUBLInvoice.getInvoicePeriod ().get (0).getStartDate ().getValueLocal ()));
+        aSPT.setStartDateTime (_createDate (aUBLInvoice.getInvoicePeriod ().get (0).getStartDate ().getValueLocal ()));
       }
       if (aUBLInvoice.getInvoicePeriod ().get (0).getEndDate () != null)
       {
-        aSPT.setEndDateTime (_parseDate (aUBLInvoice.getInvoicePeriod ().get (0).getEndDate ().getValueLocal ()));
+        aSPT.setEndDateTime (_createDate (aUBLInvoice.getInvoicePeriod ().get (0).getEndDate ().getValueLocal ()));
       }
       aHTST.setBillingSpecifiedPeriod (aSPT);
     }
@@ -735,8 +707,7 @@ public final class UBL21ToCII16BConverter
     if (aUBLInvoice.getPayeeParty () != null && !aUBLInvoice.getPayeeParty ().getPartyIdentification ().isEmpty ())
     {
       final List <IDType> aLstSIT = new ArrayList <> ();
-      aLstSIT.add (_convertIDType (aUBLInvoice.getPayeeParty ().getPartyIdentification ().get (0).getID ().getSchemeID (),
-                                   aUBLInvoice.getPayeeParty ().getPartyIdentification ().get (0).getID ().getValue ()));
+      aLstSIT.add (_convertIDType (aUBLInvoice.getPayeeParty ().getPartyIdentification ().get (0).getID ()));
       aSTTPT.setID (aLstSIT);
     }
 
@@ -748,8 +719,7 @@ public final class UBL21ToCII16BConverter
     if (aUBLInvoice.getPayeeParty () != null && !aUBLInvoice.getPayeeParty ().getPartyLegalEntity ().isEmpty ())
     {
       final LegalOrganizationType aSTLOT = new LegalOrganizationType ();
-      aSTLOT.setID (_convertIDType (aUBLInvoice.getPayeeParty ().getPartyLegalEntity ().get (0).getCompanyID ().getSchemeID (),
-                                    aUBLInvoice.getPayeeParty ().getPartyLegalEntity ().get (0).getCompanyID ().getValue ()));
+      aSTLOT.setID (_convertIDType (aUBLInvoice.getPayeeParty ().getPartyLegalEntity ().get (0).getCompanyID ()));
       aSTTPT.setSpecifiedLegalOrganization (aSTLOT);
     }
     return aSTTPT;
@@ -759,59 +729,49 @@ public final class UBL21ToCII16BConverter
   private static TradeSettlementHeaderMonetarySummationType _convertSpecifiedTradeSettlementHeaderMonetarySummation (final InvoiceType aUBLInvoice)
   {
     final TradeSettlementHeaderMonetarySummationType aTSHMST = new TradeSettlementHeaderMonetarySummationType ();
-    if (aUBLInvoice.getLegalMonetaryTotal () != null)
+    final MonetaryTotalType aUBLLMT = aUBLInvoice.getLegalMonetaryTotal ();
+    if (aUBLLMT != null)
     {
-      if (aUBLInvoice.getLegalMonetaryTotal ().getLineExtensionAmount () != null)
+      if (aUBLLMT.getLineExtensionAmount () != null)
       {
-        aTSHMST.setLineTotalAmount (_convertAmountType (aUBLInvoice.getLegalMonetaryTotal ().getLineExtensionAmount ().getCurrencyID (),
-                                                        aUBLInvoice.getLegalMonetaryTotal ().getLineExtensionAmount ().getValue ()));
+        aTSHMST.setLineTotalAmount (_convertAmountType (aUBLLMT.getLineExtensionAmount ()));
       }
-      if (aUBLInvoice.getLegalMonetaryTotal ().getChargeTotalAmount () != null)
+      if (aUBLLMT.getChargeTotalAmount () != null)
       {
-        aTSHMST.setChargeTotalAmount (_convertAmountType (aUBLInvoice.getLegalMonetaryTotal ().getChargeTotalAmount ().getCurrencyID (),
-                                                          aUBLInvoice.getLegalMonetaryTotal ().getChargeTotalAmount ().getValue ()));
+        aTSHMST.setChargeTotalAmount (_convertAmountType (aUBLLMT.getChargeTotalAmount ()));
       }
-      if (aUBLInvoice.getLegalMonetaryTotal ().getAllowanceTotalAmount () != null)
+      if (aUBLLMT.getAllowanceTotalAmount () != null)
       {
-        aTSHMST.setAllowanceTotalAmount (_convertAmountType (aUBLInvoice.getLegalMonetaryTotal ()
-                                                                        .getAllowanceTotalAmount ()
-                                                                        .getCurrencyID (),
-                                                             aUBLInvoice.getLegalMonetaryTotal ().getAllowanceTotalAmount ().getValue ()));
+        aTSHMST.setAllowanceTotalAmount (_convertAmountType (aUBLLMT.getAllowanceTotalAmount ()));
       }
-      if (aUBLInvoice.getLegalMonetaryTotal ().getTaxExclusiveAmount () != null)
+      if (aUBLLMT.getTaxExclusiveAmount () != null)
       {
-        aTSHMST.setTaxBasisTotalAmount (_convertAmountType (aUBLInvoice.getLegalMonetaryTotal ().getTaxExclusiveAmount ().getCurrencyID (),
-                                                            aUBLInvoice.getLegalMonetaryTotal ().getTaxExclusiveAmount ().getValue ()));
+        aTSHMST.setTaxBasisTotalAmount (_convertAmountType (aUBLLMT.getTaxExclusiveAmount ()));
       }
     }
 
     if (!aUBLInvoice.getTaxTotal ().isEmpty () && aUBLInvoice.getTaxTotal ().get (0).getTaxAmount () != null)
     {
-      aTSHMST.setTaxTotalAmount (_convertAmountType (aUBLInvoice.getTaxTotal ().get (0).getTaxAmount ().getCurrencyID (),
-                                                     aUBLInvoice.getTaxTotal ().get (0).getTaxAmount ().getValue ()));
+      aTSHMST.setTaxTotalAmount (_convertAmountType (aUBLInvoice.getTaxTotal ().get (0).getTaxAmount ()));
     }
 
-    if (aUBLInvoice.getLegalMonetaryTotal () != null)
+    if (aUBLLMT != null)
     {
-      if (aUBLInvoice.getLegalMonetaryTotal ().getPayableRoundingAmount () != null)
+      if (aUBLLMT.getPayableRoundingAmount () != null)
       {
-        aTSHMST.setRoundingAmount (_convertAmountType (aUBLInvoice.getLegalMonetaryTotal ().getPayableRoundingAmount ().getCurrencyID (),
-                                                       aUBLInvoice.getLegalMonetaryTotal ().getPayableRoundingAmount ().getValue ()));
+        aTSHMST.setRoundingAmount (_convertAmountType (aUBLLMT.getPayableRoundingAmount ()));
       }
-      if (aUBLInvoice.getLegalMonetaryTotal ().getTaxInclusiveAmount () != null)
+      if (aUBLLMT.getTaxInclusiveAmount () != null)
       {
-        aTSHMST.setGrandTotalAmount (_convertAmountType (aUBLInvoice.getLegalMonetaryTotal ().getTaxInclusiveAmount ().getCurrencyID (),
-                                                         aUBLInvoice.getLegalMonetaryTotal ().getTaxInclusiveAmount ().getValue ()));
+        aTSHMST.setGrandTotalAmount (_convertAmountType (aUBLLMT.getTaxInclusiveAmount ()));
       }
-      if (aUBLInvoice.getLegalMonetaryTotal ().getPrepaidAmount () != null)
+      if (aUBLLMT.getPrepaidAmount () != null)
       {
-        aTSHMST.setTotalPrepaidAmount (_convertAmountType (aUBLInvoice.getLegalMonetaryTotal ().getPrepaidAmount ().getCurrencyID (),
-                                                           aUBLInvoice.getLegalMonetaryTotal ().getPrepaidAmount ().getValue ()));
+        aTSHMST.setTotalPrepaidAmount (_convertAmountType (aUBLLMT.getPrepaidAmount ()));
       }
-      if (aUBLInvoice.getLegalMonetaryTotal ().getPayableAmount () != null)
+      if (aUBLLMT.getPayableAmount () != null)
       {
-        aTSHMST.setDuePayableAmount (_convertAmountType (aUBLInvoice.getLegalMonetaryTotal ().getPayableAmount ().getCurrencyID (),
-                                                         aUBLInvoice.getLegalMonetaryTotal ().getPayableAmount ().getValue ()));
+        aTSHMST.setDuePayableAmount (_convertAmountType (aUBLLMT.getPayableAmount ()));
       }
     }
 
@@ -829,8 +789,7 @@ public final class UBL21ToCII16BConverter
         final TradeTaxType aTTTST = new TradeTaxType ();
         if (aTTT.getTaxSubtotal ().get (0).getTaxAmount () != null)
         {
-          aTTTST.setCalculatedAmount (_convertAmountType (aTTT.getTaxSubtotal ().get (0).getTaxAmount ().getCurrencyID (),
-                                                          aTTT.getTaxSubtotal ().get (0).getTaxAmount ().getValue ()));
+          aTTTST.setCalculatedAmount (_convertAmountType (aTTT.getTaxSubtotal ().get (0).getTaxAmount ()));
         }
         if (aTTT.getTaxSubtotal ().get (0).getTaxCategory () != null)
         {
@@ -838,8 +797,7 @@ public final class UBL21ToCII16BConverter
         }
         if (aTTT.getTaxSubtotal ().get (0).getTaxableAmount () != null)
         {
-          aTTTST.setBasisAmount (_convertAmountType (aTTT.getTaxSubtotal ().get (0).getTaxableAmount ().getCurrencyID (),
-                                                     aTTT.getTaxSubtotal ().get (0).getTaxableAmount ().getValue ()));
+          aTTTST.setBasisAmount (_convertAmountType (aTTT.getTaxSubtotal ().get (0).getTaxableAmount ()));
         }
 
         if (aTTT.getTaxSubtotal ().get (0).getTaxCategory () != null)
@@ -872,7 +830,7 @@ public final class UBL21ToCII16BConverter
       }
       if (!aUBLInvoice.getPaymentMeans ().isEmpty () && aUBLInvoice.getPaymentMeans ().get (0).getPaymentDueDate () != null)
       {
-        aTPTT.setDueDateDateTime (_parseDate (aUBLInvoice.getPaymentMeans ().get (0).getPaymentDueDate ().getValueLocal ()));
+        aTPTT.setDueDateDateTime (_createDate (aUBLInvoice.getPaymentMeans ().get (0).getPaymentDueDate ().getValueLocal ()));
       }
       aLstTPTT.add (aTPTT);
     }
@@ -932,36 +890,6 @@ public final class UBL21ToCII16BConverter
     return aLstRDT;
   }
 
-  @Nonnull
-  private static List <TextType> _convertTextType (final String nameVal)
-  {
-    final List <TextType> aLstTT = new ArrayList <> ();
-    final TextType aTT = new TextType ();
-    aTT.setValue (nameVal);
-    aLstTT.add (aTT);
-    return aLstTT;
-  }
-
-  @Nonnull
-  private static IDType _convertIDType (final String schemeID, final String val)
-  {
-    final IDType aITG = new IDType ();
-    aITG.setSchemeID (schemeID);
-    aITG.setValue (val);
-    return aITG;
-  }
-
-  @Nonnull
-  private static List <AmountType> _convertAmountType (final String currencyID, final BigDecimal val)
-  {
-    final List <AmountType> aLstATTPT = new ArrayList <> ();
-    final AmountType aATTPT = new AmountType ();
-    aATTPT.setCurrencyID (currencyID);
-    aATTPT.setValue (val);
-    aLstATTPT.add (aATTPT);
-    return aLstATTPT;
-  }
-
   @Nullable
   public static CrossIndustryInvoiceType convertToCrossIndustryInvoice (@Nonnull final InvoiceType aUBLInvoice,
                                                                         @Nonnull final ErrorList aErrorList)
@@ -970,6 +898,13 @@ public final class UBL21ToCII16BConverter
     ValueEnforcer.notNull (aErrorList, "ErrorList");
 
     final ExchangedDocumentContextType aEDCT = new ExchangedDocumentContextType ();
+    if (aUBLInvoice.getCustomizationID () != null)
+    {
+      final DocumentContextParameterType aDCP = new DocumentContextParameterType ();
+      aDCP.setID (aUBLInvoice.getCustomizationIDValue ());
+      aEDCT.addGuidelineSpecifiedDocumentContextParameter (aDCP);
+    }
+
     final ExchangedDocumentType aEDT = new ExchangedDocumentType ();
 
     aEDT.setID (aUBLInvoice.getIDValue ());
@@ -978,7 +913,7 @@ public final class UBL21ToCII16BConverter
     // IssueDate
     if (aUBLInvoice.getIssueDate () != null)
     {
-      aEDT.setIssueDateTime (_parseDate (aUBLInvoice.getIssueDate ().getValueLocal ()));
+      aEDT.setIssueDateTime (_createDate (aUBLInvoice.getIssueDate ().getValueLocal ()));
     }
 
     // IncludedNote

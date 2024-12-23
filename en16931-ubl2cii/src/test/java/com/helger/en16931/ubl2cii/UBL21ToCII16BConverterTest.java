@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.util.Locale;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ import com.helger.commons.error.list.ErrorList;
 import com.helger.commons.io.file.FilenameHelper;
 import com.helger.commons.io.resource.FileSystemResource;
 import com.helger.commons.state.ESuccess;
+import com.helger.commons.string.StringHelper;
 import com.helger.phive.api.execute.ValidationExecutionManager;
 import com.helger.phive.api.result.ValidationResult;
 import com.helger.phive.api.result.ValidationResultList;
@@ -87,6 +89,11 @@ public final class UBL21ToCII16BConverterTest
         // Check that no errors (but maybe warnings) are contained
         for (final ValidationResult aResult : aResultList)
         {
+          if (!aResult.getErrorList ().isEmpty ())
+            LOGGER.error (StringHelper.imploder ()
+                                      .source (aResult.getErrorList (), x -> x.getErrorFieldName () + " - " + x.getErrorText (Locale.ROOT))
+                                      .separator ('\n')
+                                      .build ());
           assertTrue ("Errors: " + aResult.getErrorList ().toString (), aResult.getErrorList ().isEmpty ());
         }
       }
