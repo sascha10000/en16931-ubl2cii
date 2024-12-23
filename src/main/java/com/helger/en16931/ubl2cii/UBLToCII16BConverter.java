@@ -1,12 +1,28 @@
+/*
+ * Copyright (C) 2024 Philip Helger
+ * http://www.helger.com
+ * philip[at]helger[dot]com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  *
  */
-package com.myproj.ublcii.utility;
+package com.helger.en16931.ubl2cii;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -15,6 +31,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.helger.commons.ValueEnforcer;
+import com.helger.commons.datetime.PDTFactory;
 import com.helger.commons.error.list.ErrorList;
 
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.AllowanceChargeType;
@@ -127,22 +144,24 @@ public class UBLToCII16BConverter
   }
 
   @Nonnull
-  public static un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType _parseDate (final LocalDate sLocalDate)
+  private static String _createFormattedDate (@Nonnull final LocalDate aLocalDate)
   {
-    final un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType aDTT = new un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType ();
-    final un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType.DateTimeString aDTS = new un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType.DateTimeString ();
-    aDTS.setFormat (CII_DATE_FORMAT);
-    aDTS.setValue (_parseDateFormat (sLocalDate));
-    aDTT.setDateTimeString (aDTS);
-    return aDTT;
+    final SimpleDateFormat aFormatter = new SimpleDateFormat ("yyyyMMdd");
+    final Date date = PDTFactory.createDate (aLocalDate);
+    return aFormatter.format (date);
   }
 
   @Nonnull
-  public static String _parseDateFormat (final LocalDate sLocalDate)
+  private static un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType _parseDate (final LocalDate aLocalDate)
   {
-    final SimpleDateFormat formatter = new SimpleDateFormat ("yyyyMMdd");
-    final Date date = Date.from (sLocalDate.atStartOfDay (ZoneId.systemDefault ()).toInstant ());
-    return formatter.format (date);
+    final un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType aDTT = new un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType ();
+    {
+      final un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType.DateTimeString aDTS = new un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType.DateTimeString ();
+      aDTS.setFormat (CII_DATE_FORMAT);
+      aDTS.setValue (_createFormattedDate (aLocalDate));
+      aDTT.setDateTimeString (aDTS);
+    }
+    return aDTT;
   }
 
   @Nonnull
@@ -150,9 +169,11 @@ public class UBLToCII16BConverter
   {
     final List <un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType> lstILTNT = new ArrayList <> ();
     final un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType aNTSC = new un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType ();
-    final TextType aTT = new TextType ();
-    aTT.setValue (aNote.getValue ());
-    aNTSC.addContent (aTT);
+    {
+      final TextType aTT = new TextType ();
+      aTT.setValue (aNote.getValue ());
+      aNTSC.addContent (aTT);
+    }
     lstILTNT.add (aNTSC);
     return lstILTNT;
   }
