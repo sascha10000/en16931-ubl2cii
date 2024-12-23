@@ -75,6 +75,11 @@ public final class UBL21ToCII16BConverterTest
       final ESuccess eSuccess = new CIID16BCrossIndustryInvoiceTypeMarshaller ().setFormattedOutput (true)
                                                                                 .setCollectErrors (aErrorList)
                                                                                 .write (aCrossIndustryInvoice, aDestFile);
+      if (aErrorList.containsAtLeastOneError ())
+        LOGGER.error (new CIID16BCrossIndustryInvoiceTypeMarshaller ().setFormattedOutput (true)
+                                                                      .setUseSchema (false)
+                                                                      .setCollectErrors (aErrorList)
+                                                                      .getAsString (aCrossIndustryInvoice));
       assertTrue ("Errors: " + aErrorList.toString (), aErrorList.containsNoError ());
       assertTrue (eSuccess.isSuccess ());
 

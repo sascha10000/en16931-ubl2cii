@@ -39,6 +39,7 @@ import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.Ite
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.MonetaryTotalType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.PaymentTermsType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxCategoryType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxSubtotalType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxTotalType;
 import oasis.names.specification.ubl.schema.xsd.commonbasiccomponents_21.NoteType;
 import oasis.names.specification.ubl.schema.xsd.invoice_21.InvoiceType;
@@ -231,7 +232,8 @@ public final class UBL21ToCII16BConverter
           final TradeTaxType aTTT = new TradeTaxType ();
           aTTT.setTypeCode (aTCT.getTaxScheme ().getIDValue ());
           aTTT.setCategoryCode (aTCT.getIDValue ());
-          aTTT.setRateApplicablePercent (aTCT.getPercentValue ());
+          if (aTCT.getPercent () != null)
+            aTTT.setRateApplicablePercent (aTCT.getPercentValue ());
           aLstTTT.add (aTTT);
         }
         aLTST.setApplicableTradeTax (aLstTTT);
@@ -783,37 +785,36 @@ public final class UBL21ToCII16BConverter
   {
     final List <TradeTaxType> aLstTTTST = new ArrayList <> ();
     for (final TaxTotalType aTTT : aUBLInvoice.getTaxTotal ())
-    {
       if (!aTTT.getTaxSubtotal ().isEmpty ())
       {
+        final TaxSubtotalType aFirst = aTTT.getTaxSubtotal ().get (0);
         final TradeTaxType aTTTST = new TradeTaxType ();
-        if (aTTT.getTaxSubtotal ().get (0).getTaxAmount () != null)
+        if (aFirst.getTaxAmount () != null)
         {
-          aTTTST.setCalculatedAmount (_convertAmountType (aTTT.getTaxSubtotal ().get (0).getTaxAmount ()));
+          aTTTST.setCalculatedAmount (_convertAmountType (aFirst.getTaxAmount ()));
         }
-        if (aTTT.getTaxSubtotal ().get (0).getTaxCategory () != null)
+        if (aFirst.getTaxCategory () != null)
         {
-          aTTTST.setTypeCode (aTTT.getTaxSubtotal ().get (0).getTaxCategory ().getIDValue ());
+          aTTTST.setTypeCode (aFirst.getTaxCategory ().getIDValue ());
         }
-        if (aTTT.getTaxSubtotal ().get (0).getTaxableAmount () != null)
+        if (aFirst.getTaxableAmount () != null)
         {
-          aTTTST.setBasisAmount (_convertAmountType (aTTT.getTaxSubtotal ().get (0).getTaxableAmount ()));
+          aTTTST.setBasisAmount (_convertAmountType (aFirst.getTaxableAmount ()));
         }
 
-        if (aTTT.getTaxSubtotal ().get (0).getTaxCategory () != null)
+        if (aFirst.getTaxCategory () != null)
         {
-          if (!aTTT.getTaxSubtotal ().get (0).getTaxCategory ().getTaxExemptionReason ().isEmpty ())
+          if (!aFirst.getTaxCategory ().getTaxExemptionReason ().isEmpty ())
           {
-            aTTTST.setExemptionReason (aTTT.getTaxSubtotal ().get (0).getTaxCategory ().getTaxExemptionReason ().get (0).getValue ());
+            aTTTST.setExemptionReason (aFirst.getTaxCategory ().getTaxExemptionReason ().get (0).getValue ());
           }
-          if (aTTT.getTaxSubtotal ().get (0).getTaxCategory ().getTaxExemptionReasonCode () != null)
+          if (aFirst.getTaxCategory ().getTaxExemptionReasonCode () != null)
           {
-            aTTTST.setExemptionReasonCode (aTTT.getTaxSubtotal ().get (0).getTaxCategory ().getTaxExemptionReasonCode ().getValue ());
+            aTTTST.setExemptionReasonCode (aFirst.getTaxCategory ().getTaxExemptionReasonCode ().getValue ());
           }
         }
         aLstTTTST.add (aTTTST);
       }
-    }
     return aLstTTTST;
   }
 
