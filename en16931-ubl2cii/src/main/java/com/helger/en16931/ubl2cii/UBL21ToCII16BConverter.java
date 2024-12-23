@@ -57,88 +57,12 @@ import un.unece.uncefact.data.standard.unqualifieddatatype._100.TextType;
  *
  * @author Vartika Rastogi
  */
-public class UBL21ToCII16BConverter
+public final class UBL21ToCII16BConverter
 {
   private static final String CII_DATE_FORMAT = "102";
 
-  public UBL21ToCII16BConverter ()
+  private UBL21ToCII16BConverter ()
   {}
-
-  @Nullable
-  public CrossIndustryInvoiceType convertToCrossIndustryInvoice (@Nonnull final InvoiceType aUBLInvoice,
-                                                                 @Nonnull final ErrorList aErrorList)
-  {
-    ValueEnforcer.notNull (aUBLInvoice, "UBLInvoice");
-    ValueEnforcer.notNull (aErrorList, "ErrorList");
-
-    final ExchangedDocumentContextType aEDCT = new ExchangedDocumentContextType ();
-    final ExchangedDocumentType aEDT = new ExchangedDocumentType ();
-
-    aEDT.setID (aUBLInvoice.getIDValue ());
-    aEDT.setTypeCode (aUBLInvoice.getInvoiceTypeCodeValue ());
-
-    // IssueDate
-    if (aUBLInvoice.getIssueDate () != null)
-    {
-      aEDT.setIssueDateTime (_parseDate (aUBLInvoice.getIssueDate ().getValueLocal ()));
-    }
-
-    // IncludedNote
-    if (!aUBLInvoice.getNote ().isEmpty ())
-    {
-      aEDT.setIncludedNote (_convertIncludedNote (aUBLInvoice.getNote ().get (0)));
-    }
-
-    final SupplyChainTradeTransactionType aSCTT = new SupplyChainTradeTransactionType ();
-
-    // IncludedSupplyChainTradeLineItem
-    aSCTT.setIncludedSupplyChainTradeLineItem (_convertInvoiceLine (aUBLInvoice.getInvoiceLine ()));
-
-    // ApplicableHeaderTradeAgreement
-    final HeaderTradeAgreementType aHTAT = new HeaderTradeAgreementType ();
-
-    // SellerTradeParty
-    aHTAT.setSellerTradeParty (_convertSellerTradeParty (aUBLInvoice));
-
-    // BuyerTradeParty
-    aHTAT.setBuyerTradeParty (_convertBuyerTradeParty (aUBLInvoice));
-
-    // BuyerOrderReferencedDocument
-    final ReferencedDocumentType aRDT = new ReferencedDocumentType ();
-    if (aUBLInvoice.getOrderReference () != null)
-    {
-      aRDT.setIssuerAssignedID (aUBLInvoice.getOrderReference ().getID ().getValue ());
-    }
-    aHTAT.setBuyerOrderReferencedDocument (aRDT);
-
-    // ContractReferencedDocument
-    if (!aUBLInvoice.getContractDocumentReference ().isEmpty ())
-    {
-      final ReferencedDocumentType aCRDT = new ReferencedDocumentType ();
-      if (!aUBLInvoice.getContractDocumentReference ().isEmpty ())
-      {
-        aCRDT.setIssuerAssignedID (aUBLInvoice.getContractDocumentReference ().get (0).getID ().getValue ());
-      }
-      aHTAT.setContractReferencedDocument (aCRDT);
-    }
-
-    // AdditionalReferencedDocument
-    aHTAT.setAdditionalReferencedDocument (_convertAdditionalReferencedDocument (aUBLInvoice));
-    aSCTT.setApplicableHeaderTradeAgreement (aHTAT);
-
-    // ApplicableHeaderTradeDelivery
-    aSCTT.setApplicableHeaderTradeDelivery (_convertApplicableHeaderTradeDelivery (aUBLInvoice));
-
-    // ApplicableHeaderTradeSettlement
-    aSCTT.setApplicableHeaderTradeSettlement (_convertApplicableHeaderTradeSettlement (aUBLInvoice));
-
-    final CrossIndustryInvoiceType aCIIInvoice = new CrossIndustryInvoiceType ();
-    aCIIInvoice.setExchangedDocumentContext (aEDCT);
-    aCIIInvoice.setExchangedDocument (aEDT);
-    aCIIInvoice.setSupplyChainTradeTransaction (aSCTT);
-
-    return aCIIInvoice;
-  }
 
   @Nonnull
   private static String _createFormattedDate (@Nonnull final LocalDate aLocalDate)
@@ -1039,10 +963,78 @@ public class UBL21ToCII16BConverter
   }
 
   @Nullable
-  public CrossIndustryInvoiceType convertUBLToCII (@Nonnull final InvoiceType aUBLInvoice, @Nonnull final ErrorList aErrorList)
+  public static CrossIndustryInvoiceType convertToCrossIndustryInvoice (@Nonnull final InvoiceType aUBLInvoice,
+                                                                        @Nonnull final ErrorList aErrorList)
   {
-    ValueEnforcer.notNull (aUBLInvoice, "CIIInvoice");
+    ValueEnforcer.notNull (aUBLInvoice, "UBLInvoice");
     ValueEnforcer.notNull (aErrorList, "ErrorList");
-    return convertToCrossIndustryInvoice (aUBLInvoice, aErrorList);
+
+    final ExchangedDocumentContextType aEDCT = new ExchangedDocumentContextType ();
+    final ExchangedDocumentType aEDT = new ExchangedDocumentType ();
+
+    aEDT.setID (aUBLInvoice.getIDValue ());
+    aEDT.setTypeCode (aUBLInvoice.getInvoiceTypeCodeValue ());
+
+    // IssueDate
+    if (aUBLInvoice.getIssueDate () != null)
+    {
+      aEDT.setIssueDateTime (_parseDate (aUBLInvoice.getIssueDate ().getValueLocal ()));
+    }
+
+    // IncludedNote
+    if (!aUBLInvoice.getNote ().isEmpty ())
+    {
+      aEDT.setIncludedNote (_convertIncludedNote (aUBLInvoice.getNote ().get (0)));
+    }
+
+    final SupplyChainTradeTransactionType aSCTT = new SupplyChainTradeTransactionType ();
+
+    // IncludedSupplyChainTradeLineItem
+    aSCTT.setIncludedSupplyChainTradeLineItem (_convertInvoiceLine (aUBLInvoice.getInvoiceLine ()));
+
+    // ApplicableHeaderTradeAgreement
+    final HeaderTradeAgreementType aHTAT = new HeaderTradeAgreementType ();
+
+    // SellerTradeParty
+    aHTAT.setSellerTradeParty (_convertSellerTradeParty (aUBLInvoice));
+
+    // BuyerTradeParty
+    aHTAT.setBuyerTradeParty (_convertBuyerTradeParty (aUBLInvoice));
+
+    // BuyerOrderReferencedDocument
+    final ReferencedDocumentType aRDT = new ReferencedDocumentType ();
+    if (aUBLInvoice.getOrderReference () != null)
+    {
+      aRDT.setIssuerAssignedID (aUBLInvoice.getOrderReference ().getID ().getValue ());
+    }
+    aHTAT.setBuyerOrderReferencedDocument (aRDT);
+
+    // ContractReferencedDocument
+    if (!aUBLInvoice.getContractDocumentReference ().isEmpty ())
+    {
+      final ReferencedDocumentType aCRDT = new ReferencedDocumentType ();
+      if (!aUBLInvoice.getContractDocumentReference ().isEmpty ())
+      {
+        aCRDT.setIssuerAssignedID (aUBLInvoice.getContractDocumentReference ().get (0).getID ().getValue ());
+      }
+      aHTAT.setContractReferencedDocument (aCRDT);
+    }
+
+    // AdditionalReferencedDocument
+    aHTAT.setAdditionalReferencedDocument (_convertAdditionalReferencedDocument (aUBLInvoice));
+    aSCTT.setApplicableHeaderTradeAgreement (aHTAT);
+
+    // ApplicableHeaderTradeDelivery
+    aSCTT.setApplicableHeaderTradeDelivery (_convertApplicableHeaderTradeDelivery (aUBLInvoice));
+
+    // ApplicableHeaderTradeSettlement
+    aSCTT.setApplicableHeaderTradeSettlement (_convertApplicableHeaderTradeSettlement (aUBLInvoice));
+
+    final CrossIndustryInvoiceType aCIIInvoice = new CrossIndustryInvoiceType ();
+    aCIIInvoice.setExchangedDocumentContext (aEDCT);
+    aCIIInvoice.setExchangedDocument (aEDT);
+    aCIIInvoice.setSupplyChainTradeTransaction (aSCTT);
+
+    return aCIIInvoice;
   }
 }

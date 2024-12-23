@@ -54,7 +54,9 @@ public final class UBLCIIConversionHelper
       return ESuccess.FAILURE;
 
     // Main conversion
-    final CrossIndustryInvoiceType aCrossIndustryInvoice = new UBL21ToCII16BConverter ().convertUBLToCII (aUBLInvoice, new ErrorList ());
+    final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21ToCII16BConverter.convertToCrossIndustryInvoice (aUBLInvoice, aErrorList);
+    if (aCrossIndustryInvoice == null)
+      return ESuccess.FAILURE;
 
     // Write CII D16B XML
     return new CIID16BCrossIndustryInvoiceTypeMarshaller ().setFormattedOutput (true)
