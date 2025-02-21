@@ -1,6 +1,6 @@
 package com.helger.en16931.ubl2cii;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,8 +10,8 @@ import org.junit.Test;
 
 import com.helger.commons.error.list.ErrorList;
 import com.helger.commons.io.file.FileHelper;
-import com.helger.commons.io.stream.NonBlockingByteArrayOutputStream;
-import com.helger.commons.state.ESuccess;
+
+import un.unece.uncefact.data.standard.crossindustryinvoice._100.CrossIndustryInvoiceType;
 
 /**
  * Test class for class {@link UBLCIIConversionHelper}.
@@ -26,23 +26,17 @@ public final class UBLCIIConversionHelperTest
     for (final File aFile : MockSettings.getAllTestFilesUBL21Invoice ())
       try (InputStream aIS = FileHelper.getInputStream (aFile))
       {
-        try (NonBlockingByteArrayOutputStream aBAOS = new NonBlockingByteArrayOutputStream ())
-        {
-          final ErrorList aErrorList = new ErrorList ();
-          final ESuccess eSuccess = UBLCIIConversionHelper.convertUBL21AutoDetectToCIID16B (aIS, aBAOS, aErrorList);
-          assertTrue (eSuccess.isSuccess ());
-        }
+        final ErrorList aErrorList = new ErrorList ();
+        final CrossIndustryInvoiceType aCII = UBLCIIConversionHelper.convertUBL21AutoDetectToCIID16B (aIS, aErrorList);
+        assertNotNull (aCII);
       }
 
     for (final File aFile : MockSettings.getAllTestFilesUBL21CreditNote ())
       try (InputStream aIS = FileHelper.getInputStream (aFile))
       {
-        try (NonBlockingByteArrayOutputStream aBAOS = new NonBlockingByteArrayOutputStream ())
-        {
-          final ErrorList aErrorList = new ErrorList ();
-          final ESuccess eSuccess = UBLCIIConversionHelper.convertUBL21AutoDetectToCIID16B (aIS, aBAOS, aErrorList);
-          assertTrue (eSuccess.isSuccess ());
-        }
+        final ErrorList aErrorList = new ErrorList ();
+        final CrossIndustryInvoiceType aCII = UBLCIIConversionHelper.convertUBL21AutoDetectToCIID16B (aIS, aErrorList);
+        assertNotNull (aCII);
       }
   }
 }
