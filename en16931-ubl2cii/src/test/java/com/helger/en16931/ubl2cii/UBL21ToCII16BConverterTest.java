@@ -94,11 +94,17 @@ public final class UBL21ToCII16BConverterTest
         // Check that no errors (but maybe warnings) are contained
         for (final ValidationResult aResult : aResultList)
         {
-          if (!aResult.getErrorList ().isEmpty ())
+          if (aResult.getErrorList ().isNotEmpty ())
+          {
+            // Log Invoice
+            LOGGER.error (new CIID16BCrossIndustryInvoiceTypeMarshaller ().setFormattedOutput (true).getAsString (aCrossIndustryInvoice));
+
+            // Log errors
             LOGGER.error (StringHelper.imploder ()
                                       .source (aResult.getErrorList (), x -> x.getErrorFieldName () + " - " + x.getErrorText (Locale.ROOT))
                                       .separator ('\n')
                                       .build ());
+          }
           assertTrue ("Errors: " + aResult.getErrorList ().toString (), aResult.getErrorList ().isEmpty ());
         }
       }

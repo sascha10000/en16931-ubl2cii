@@ -34,6 +34,7 @@ import com.helger.commons.math.MathHelper;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.*;
 import oasis.names.specification.ubl.schema.xsd.invoice_21.InvoiceType;
 import un.unece.uncefact.data.standard.crossindustryinvoice._100.CrossIndustryInvoiceType;
+import un.unece.uncefact.data.standard.qualifieddatatype._100.FormattedDateTimeType;
 import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.*;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.AmountType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.BinaryObjectType;
@@ -65,15 +66,19 @@ public final class UBL21ToCII16BConverter
   }
 
   @Nonnull
+  private static un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType.DateTimeString _createDateTimeString (@Nonnull final LocalDate aLocalDate)
+  {
+    final un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType.DateTimeString aDTS = new un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType.DateTimeString ();
+    aDTS.setFormat (CII_DATE_FORMAT);
+    aDTS.setValue (_createFormattedDateValue (aLocalDate));
+    return aDTS;
+  }
+
+  @Nonnull
   private static un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType _createDate (@Nonnull final LocalDate aLocalDate)
   {
     final un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType aDTT = new un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType ();
-    {
-      final un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType.DateTimeString aDTS = new un.unece.uncefact.data.standard.unqualifieddatatype._100.DateTimeType.DateTimeString ();
-      aDTS.setFormat (CII_DATE_FORMAT);
-      aDTS.setValue (_createFormattedDateValue (aLocalDate));
-      aDTT.setDateTimeString (aDTS);
-    }
+    aDTT.setDateTimeString (_createDateTimeString (aLocalDate));
     return aDTT;
   }
 
@@ -317,24 +322,28 @@ public final class UBL21ToCII16BConverter
   @Nullable
   private static HeaderTradeDeliveryType _convertApplicableHeaderTradeDelivery (@Nullable final DeliveryType aDelivery)
   {
+    // Object is mandatory
     final HeaderTradeDeliveryType ret = new HeaderTradeDeliveryType ();
 
-    final LocationType aDL = aDelivery.getDeliveryLocation ();
-    if (aDL != null)
+    if (aDelivery != null)
     {
-      final TradePartyType aTPTHT = new TradePartyType ();
-      if (aDL.getID () != null)
-        aTPTHT.addID (_convertIDType (aDL.getID ()));
+      final LocationType aDL = aDelivery.getDeliveryLocation ();
+      if (aDL != null)
+      {
+        final TradePartyType aTPTHT = new TradePartyType ();
+        if (aDL.getID () != null)
+          aTPTHT.addID (_convertIDType (aDL.getID ()));
 
-      aTPTHT.setPostalTradeAddress (_convertAddress (aDL.getAddress ()));
-      ret.setShipToTradeParty (aTPTHT);
-    }
+        aTPTHT.setPostalTradeAddress (_convertAddress (aDL.getAddress ()));
+        ret.setShipToTradeParty (aTPTHT);
+      }
 
-    if (aDelivery.getActualDeliveryDate () != null)
-    {
-      final SupplyChainEventType aSCET = new SupplyChainEventType ();
-      aSCET.setOccurrenceDateTime (_createDate (aDelivery.getActualDeliveryDate ().getValueLocal ()));
-      ret.setActualDeliverySupplyChainEvent (aSCET);
+      if (aDelivery.getActualDeliveryDate () != null)
+      {
+        final SupplyChainEventType aSCET = new SupplyChainEventType ();
+        aSCET.setOccurrenceDateTime (_createDate (aDelivery.getActualDeliveryDate ().getValueLocal ()));
+        ret.setActualDeliverySupplyChainEvent (aSCET);
+      }
     }
     return ret;
   }
@@ -445,19 +454,24 @@ public final class UBL21ToCII16BConverter
     for (final TaxTotalType aTTT : aUBLInvoice.getTaxTotal ())
       if (aTTT.hasTaxSubtotalEntries ())
       {
-        final TaxSubtotalType aFirst = aTTT.getTaxSubtotal ().get (0);
+        final TaxSubtotalType aTST = aTTT.getTaxSubtotalAtIndex (0);
+        final TaxCategoryType aTC = aTST.getTaxCategory ();
+        final TaxSchemeType aTS = aTC == null ? null : aTC.getTaxScheme ();
 
         final TradeTaxType aTTTST = new TradeTaxType ();
-        if (aFirst.getTaxAmount () != null)
-          aTTTST.addCalculatedAmount (_convertAmountType (aFirst.getTaxAmount ()));
 
-        if (aFirst.getTaxCategory () != null)
-          aTTTST.setTypeCode (aFirst.getTaxCategory ().getIDValue ());
+        if (aTS != null)
+          aTTTST.setTypeCode (aTS.getIDValue ());
 
-        if (aFirst.getTaxableAmount () != null)
-          aTTTST.addBasisAmount (_convertAmountType (aFirst.getTaxableAmount ()));
+        if (aTST.getTaxAmount () != null)
+          aTTTST.addCalculatedAmount (_convertAmountType (aTST.getTaxAmount ()));
 
-        final TaxCategoryType aTC = aFirst.getTaxCategory ();
+        if (aTST.getTaxCategory () != null)
+          aTTTST.setCategoryCode (aTST.getTaxCategory ().getIDValue ());
+
+        if (aTST.getTaxableAmount () != null)
+          aTTTST.addBasisAmount (_convertAmountType (aTST.getTaxableAmount ()));
+
         if (aTC != null)
         {
           if (aTC.hasTaxExemptionReasonEntries ())
@@ -494,6 +508,7 @@ public final class UBL21ToCII16BConverter
   }
 
   @Nonnull
+
   private static List <TradeAllowanceChargeType> _convertSpecifiedTradeAllowanceCharge (@Nonnull final InvoiceType aUBLInvoice)
   {
     final List <TradeAllowanceChargeType> ret = new ArrayList <> ();
@@ -517,17 +532,53 @@ public final class UBL21ToCII16BConverter
     return ret;
   }
 
+  protected static boolean isOriginatorDocumentReferenceTypeCode (@Nullable final String s)
+  {
+    // BT-17
+    return "50".equals (s);
+  }
+
+  protected static boolean isValidDocumentReferenceTypeCode (@Nullable final String s)
+  {
+    // BT-17 or BT-18
+    // Value 916 from BT-122 should not lead to a DocumentTypeCode
+    return isOriginatorDocumentReferenceTypeCode (s) || "130".equals (s);
+  }
+
   @Nonnull
   private static List <ReferencedDocumentType> _convertAdditionalReferencedDocument (@Nonnull final InvoiceType aUBLInvoice)
   {
     final List <ReferencedDocumentType> ret = new ArrayList <> ();
-    for (final DocumentReferenceType aDRT : aUBLInvoice.getAdditionalDocumentReference ())
+    for (final DocumentReferenceType aDocDesc : aUBLInvoice.getAdditionalDocumentReference ())
     {
-      final AttachmentType aAttachment = aDRT.getAttachment ();
-
       final ReferencedDocumentType aURDT = new ReferencedDocumentType ();
-      aURDT.setIssuerAssignedID (aDRT.getID ().getValue ());
 
+      if (aDocDesc.getID () != null)
+        aURDT.setIssuerAssignedID (aDocDesc.getIDValue ());
+
+      // Add DocumentTypeCode where possible
+      if (aDocDesc.getDocumentTypeCode () != null && isValidDocumentReferenceTypeCode (aDocDesc.getDocumentTypeCodeValue ()))
+        aURDT.setTypeCode (aDocDesc.getDocumentTypeCodeValue ());
+      else
+        aURDT.setTypeCode ("916");
+
+      if (aDocDesc.getIssueDate () != null)
+      {
+        final FormattedDateTimeType aFIDT = new FormattedDateTimeType ();
+        aFIDT.setDateTimeString (_createFormattedDateValue (aDocDesc.getIssueDateValueLocal ()));
+        aURDT.setFormattedIssueDateTime (aFIDT);
+      }
+
+      for (final var aDesc : aDocDesc.getDocumentDescription ())
+      {
+        final TextType aText = new TextType ();
+        aText.setValue (aDesc.getValue ());
+        aText.setLanguageID (aDesc.getLanguageID ());
+        aText.setLanguageLocaleID (aDesc.getLanguageLocaleID ());
+        aURDT.addName (aText);
+      }
+
+      final AttachmentType aAttachment = aDocDesc.getAttachment ();
       if (aAttachment != null)
       {
         // External Reference and Embedded Document Binary Object should be
@@ -536,6 +587,7 @@ public final class UBL21ToCII16BConverter
         {
           aURDT.setURIID (aAttachment.getExternalReference ().getURI ().getValue ());
         }
+
         if (aAttachment.getEmbeddedDocumentBinaryObject () != null)
         {
           final BinaryObjectType aBOT = new BinaryObjectType ();
@@ -627,8 +679,8 @@ public final class UBL21ToCII16BConverter
       }
 
       // ApplicableHeaderTradeDelivery
-      if (aUBLInvoice.hasDeliveryEntries ())
-        aSCTT.setApplicableHeaderTradeDelivery (_convertApplicableHeaderTradeDelivery (aUBLInvoice.getDeliveryAtIndex (0)));
+      aSCTT.setApplicableHeaderTradeDelivery (_convertApplicableHeaderTradeDelivery (aUBLInvoice.hasDeliveryEntries () ? aUBLInvoice.getDeliveryAtIndex (0)
+                                                                                                                       : null));
 
       // ApplicableHeaderTradeSettlement
       aSCTT.setApplicableHeaderTradeSettlement (_convertApplicableHeaderTradeSettlement (aUBLInvoice));
