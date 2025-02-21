@@ -7,7 +7,7 @@ Converter library for EN 16931:2017 invoices from UBL 2.1 to CII D16B
 
 This version is based on the version of @VartikaG02: https://github.com/VartikaG02/en16931-ubl2cii
 
-Status: Draft
+Status: Work in progress
 
 This is a Java 11+ library that converts a Universal Business Language (UBL) 2.1 into a Cross Industry Invoice (CII) D16B document following the rules of the European Norm (EN) 16931 that defines a common semantic data model for electronic invoices in Europe.
 
@@ -18,6 +18,8 @@ This library is licensed under the Apache License Version 2.0.
 # News and noteworthy
 
 * v1.1.0 - work in progress
+    * The created CII documents are now compliant to the EN 16931:2017 validation artefacts
+    * Added support to convert UBL 2.1 CreditNotes as well
     * Initial fork from https://github.com/VartikaG02/en16931-ubl2cii
 
 ---
