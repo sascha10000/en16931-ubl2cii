@@ -84,7 +84,7 @@ public final class UBL21ToCII16BConverterTest
       assertTrue (eSuccess.isSuccess ());
 
       // TODO fix validation errors
-      if (false)
+      if (true)
       {
         // Validate against EN16931 validation rules
         final ValidationResultList aResultList = ValidationExecutionManager.executeValidation (IValidityDeterminator.createDefault (),
