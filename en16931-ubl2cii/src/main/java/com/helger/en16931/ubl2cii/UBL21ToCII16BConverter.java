@@ -29,19 +29,9 @@ import javax.annotation.Nullable;
 import com.helger.commons.ValueEnforcer;
 import com.helger.commons.datetime.PDTFactory;
 import com.helger.commons.error.list.ErrorList;
+import com.helger.commons.math.MathHelper;
 
-import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.AllowanceChargeType;
-import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.CommodityClassificationType;
-import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.DocumentReferenceType;
-import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.InvoiceLineType;
-import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.ItemPropertyType;
-import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.ItemType;
-import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.MonetaryTotalType;
-import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.PaymentTermsType;
-import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxCategoryType;
-import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxSubtotalType;
-import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxTotalType;
-import oasis.names.specification.ubl.schema.xsd.commonbasiccomponents_21.NoteType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.*;
 import oasis.names.specification.ubl.schema.xsd.invoice_21.InvoiceType;
 import un.unece.uncefact.data.standard.crossindustryinvoice._100.CrossIndustryInvoiceType;
 import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.*;
@@ -88,13 +78,11 @@ public final class UBL21ToCII16BConverter
   }
 
   @Nonnull
-  private static List <TextType> _convertTextType (@Nonnull final String sValue)
+  private static TextType _convertTextType (@Nonnull final String sValue)
   {
-    final List <TextType> aLstTT = new ArrayList <> ();
     final TextType aTT = new TextType ();
     aTT.setValue (sValue);
-    aLstTT.add (aTT);
-    return aLstTT;
+    return aTT;
   }
 
   @Nonnull
@@ -107,33 +95,27 @@ public final class UBL21ToCII16BConverter
   }
 
   @Nonnull
-  private static List <AmountType> _convertAmountType (final com.helger.xsds.ccts.cct.schemamodule.AmountType aUBLAmount)
+  private static AmountType _convertAmountType (final com.helger.xsds.ccts.cct.schemamodule.AmountType aUBLAmount)
   {
-    final List <AmountType> aLstATTPT = new ArrayList <> ();
     final AmountType aATTPT = new AmountType ();
     if (false)
       aATTPT.setCurrencyID (aUBLAmount.getCurrencyID ());
-    aATTPT.setValue (aUBLAmount.getValue ());
-    aLstATTPT.add (aATTPT);
-    return aLstATTPT;
+    aATTPT.setValue (MathHelper.getWithoutTrailingZeroes (aUBLAmount.getValue ()));
+    return aATTPT;
   }
 
   @Nonnull
-  private static List <un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType> _convertIncludedNote (final NoteType aNote)
+  private static un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType _convertNote (final oasis.names.specification.ubl.schema.xsd.commonbasiccomponents_21.NoteType aNote)
   {
-    final List <un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType> lstILTNT = new ArrayList <> ();
     final un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType aNTSC = new un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType ();
-    {
-      final TextType aTT = new TextType ();
-      aTT.setValue (aNote.getValue ());
-      aNTSC.addContent (aTT);
-    }
-    lstILTNT.add (aNTSC);
-    return lstILTNT;
+    final TextType aTT = new TextType ();
+    aTT.setValue (aNote.getValue ());
+    aNTSC.addContent (aTT);
+    return aNTSC;
   }
 
   @Nonnull
-  private static List <SupplyChainTradeLineItemType> _convertInvoiceLine (final List <oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.InvoiceLineType> aLstIL)
+  private static List <SupplyChainTradeLineItemType> _convertInvoiceLines (final List <oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.InvoiceLineType> aLstIL)
   {
     final List <SupplyChainTradeLineItemType> aLstSCTLIT = new ArrayList <> ();
     for (final InvoiceLineType aILT : aLstIL)
@@ -143,9 +125,9 @@ public final class UBL21ToCII16BConverter
 
       aDLDT.setLineID (aILT.getIDValue ());
 
-      if (!aILT.getNote ().isEmpty ())
+      if (aILT.hasNoteEntries ())
       {
-        aDLDT.setIncludedNote (_convertIncludedNote (aILT.getNote ().get (0)));
+        aDLDT.addIncludedNote (_convertNote (aILT.getNote ().get (0)));
       }
 
       aISCTLI.setAssociatedDocumentLineDocument (aDLDT);
@@ -163,9 +145,9 @@ public final class UBL21ToCII16BConverter
         aTPT.setSellerAssignedID (aIT.getSellersItemIdentification ().getIDValue ());
       }
 
-      aTPT.setName (_convertTextType (aIT.getNameValue ()));
+      aTPT.addName (_convertTextType (aIT.getNameValue ()));
 
-      if (!aIT.getDescription ().isEmpty ())
+      if (aIT.hasDescriptionEntries ())
       {
         aTPT.setDescription (aIT.getDescription ().get (0).getValue ());
       }
@@ -175,14 +157,13 @@ public final class UBL21ToCII16BConverter
       for (final ItemPropertyType aIPT : aILT.getItem ().getAdditionalItemProperty ())
       {
         final ProductCharacteristicType aPCT = new ProductCharacteristicType ();
-        aPCT.setDescription (_convertTextType (aIPT.getNameValue ()));
-        aPCT.setValue (_convertTextType (aIPT.getValueValue ()));
+        aPCT.addDescription (_convertTextType (aIPT.getNameValue ()));
+        aPCT.addValue (_convertTextType (aIPT.getValueValue ()));
         aLstPCT.add (aPCT);
       }
       aTPT.setApplicableProductCharacteristic (aLstPCT);
 
       // DesignatedProductClassification
-      final List <ProductClassificationType> aLstPCCT = new ArrayList <> ();
       for (final CommodityClassificationType aCCT : aILT.getItem ().getCommodityClassification ())
       {
         final ProductClassificationType aPCT = new ProductClassificationType ();
@@ -190,16 +171,15 @@ public final class UBL21ToCII16BConverter
         aCT.setListID (aCCT.getItemClassificationCode ().getListID ());
         aCT.setValue (aCCT.getItemClassificationCode ().getValue ());
         aPCT.setClassCode (aCT);
-        aLstPCCT.add (aPCT);
+        aTPT.addDesignatedProductClassification (aPCT);
       }
-      aTPT.setDesignatedProductClassification (aLstPCCT);
       aISCTLI.setSpecifiedTradeProduct (aTPT);
 
       // SpecifiedLineTradeAgreement
       final LineTradeAgreementType aLTAT = new LineTradeAgreementType ();
       // BuyerOrderReferencedDocument
       final ReferencedDocumentType aRDT = new ReferencedDocumentType ();
-      if (!aILT.getOrderLineReference ().isEmpty ())
+      if (aILT.hasOrderLineReferenceEntries ())
       {
         aRDT.setLineID (aILT.getOrderLineReference ().get (0).getLineIDValue ());
       }
@@ -208,7 +188,7 @@ public final class UBL21ToCII16BConverter
       final TradePriceType aLTPT = new TradePriceType ();
       if (aILT.getPrice () != null && aILT.getPrice ().getPriceAmount () != null)
       {
-        aLTPT.setChargeAmount (_convertAmountType (aILT.getPrice ().getPriceAmount ()));
+        aLTPT.addChargeAmount (_convertAmountType (aILT.getPrice ().getPriceAmount ()));
       }
 
       aLTAT.setBuyerOrderReferencedDocument (aRDT);
@@ -226,7 +206,6 @@ public final class UBL21ToCII16BConverter
       // SpecifiedLineTradeSettlement
       final LineTradeSettlementType aLTST = new LineTradeSettlementType ();
       {
-        final List <TradeTaxType> aLstTTT = new ArrayList <> ();
         for (final TaxCategoryType aTCT : aILT.getItem ().getClassifiedTaxCategory ())
         {
           final TradeTaxType aTTT = new TradeTaxType ();
@@ -234,23 +213,20 @@ public final class UBL21ToCII16BConverter
           aTTT.setCategoryCode (aTCT.getIDValue ());
           if (aTCT.getPercent () != null)
             aTTT.setRateApplicablePercent (aTCT.getPercentValue ());
-          aLstTTT.add (aTTT);
+          aLTST.addApplicableTradeTax (aTTT);
         }
-        aLTST.setApplicableTradeTax (aLstTTT);
       }
       final TradeSettlementLineMonetarySummationType aTSLMST = new TradeSettlementLineMonetarySummationType ();
       if (aILT.getLineExtensionAmount () != null)
       {
-        aTSLMST.setLineTotalAmount (_convertAmountType (aILT.getLineExtensionAmount ()));
+        aTSLMST.addLineTotalAmount (_convertAmountType (aILT.getLineExtensionAmount ()));
       }
 
       if (aILT.getAccountingCostValue () != null)
       {
-        final List <TradeAccountingAccountType> aLstTAATL = new ArrayList <> ();
         final TradeAccountingAccountType aTAATL = new TradeAccountingAccountType ();
         aTAATL.setID (aILT.getAccountingCostValue ());
-        aLstTAATL.add (aTAATL);
-        aLTST.setReceivableSpecifiedTradeAccountingAccount (aLstTAATL);
+        aLTST.addReceivableSpecifiedTradeAccountingAccount (aTAATL);
       }
 
       aLTST.setSpecifiedTradeSettlementLineMonetarySummation (aTSLMST);
@@ -261,428 +237,149 @@ public final class UBL21ToCII16BConverter
     return aLstSCTLIT;
   }
 
-  @Nonnull
-  private static TradePartyType _convertSellerTradeParty (final InvoiceType aUBLInvoice)
+  @Nullable
+  private static TradeAddressType _convertAddress (@Nullable final AddressType aAddress)
   {
+    if (aAddress == null)
+      return null;
+
+    final TradeAddressType ret = new TradeAddressType ();
+
+    if (aAddress.getStreetName () != null)
+      ret.setLineOne (aAddress.getStreetName ().getValue ());
+
+    if (aAddress.getAdditionalStreetName () != null)
+      ret.setLineTwo (aAddress.getAdditionalStreetName ().getValue ());
+
+    if (aAddress.hasAddressLineEntries ())
+      ret.setLineThree (aAddress.getAddressLineAtIndex (0).getLineValue ());
+
+    if (aAddress.getCityName () != null)
+      ret.setCityName (aAddress.getCityName ().getValue ());
+
+    if (aAddress.getPostalZone () != null)
+      ret.setPostcodeCode (aAddress.getPostalZone ().getValue ());
+
+    if (aAddress.getCountrySubentity () != null)
+      ret.addCountrySubDivisionName (_convertTextType (aAddress.getCountrySubentity ().getValue ()));
+
+    if (aAddress.getCountry () != null && aAddress.getCountry ().getIdentificationCode () != null)
+      ret.setCountryID (aAddress.getCountry ().getIdentificationCode ().getValue ());
+
+    return ret;
+  }
+
+  @Nullable
+  private static TradePartyType _convertParty (@Nullable final PartyType aParty)
+  {
+    if (aParty == null)
+      return null;
+
     final TradePartyType aTPT = new TradePartyType ();
-    final List <IDType> aLstIT = new ArrayList <> ();
+    for (final var aPartyID : aParty.getPartyIdentification ())
+      if (aPartyID.getID () != null)
+        aTPT.addID (_convertIDType (aPartyID.getID ()));
 
-    if (aUBLInvoice.getAccountingSupplierParty () != null &&
-        aUBLInvoice.getAccountingSupplierParty ().getParty () != null &&
-        !aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyIdentification ().isEmpty () &&
-        aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyIdentification ().get (0).getID () != null)
-    {
-      aLstIT.add (_convertIDType (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyIdentification ().get (0).getID ()));
-      aTPT.setID (aLstIT);
-    }
+    if (aParty.hasPartyNameEntries ())
+      aTPT.setName (aParty.getPartyName ().get (0).getNameValue ());
 
-    if (aUBLInvoice.getAccountingSupplierParty () != null &&
-        aUBLInvoice.getAccountingSupplierParty ().getParty () != null &&
-        !aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyName ().isEmpty ())
+    if (aParty.hasPartyLegalEntityEntries ())
     {
-      aTPT.setName (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyName ().get (0).getNameValue ());
-    }
+      final PartyLegalEntityType aLE = aParty.getPartyLegalEntity ().get (0);
 
-    if (aUBLInvoice.getAccountingSupplierParty () != null &&
-        aUBLInvoice.getAccountingSupplierParty ().getParty () != null &&
-        !aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyLegalEntity ().isEmpty ())
-    {
       final LegalOrganizationType aLOT = new LegalOrganizationType ();
-
-      aLOT.setTradingBusinessName (aUBLInvoice.getAccountingSupplierParty ()
-                                              .getParty ()
-                                              .getPartyLegalEntity ()
-                                              .get (0)
-                                              .getRegistrationNameValue ());
-      if (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyLegalEntity ().get (0).getCompanyID () != null)
-      {
-        aLOT.setID (_convertIDType (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyLegalEntity ().get (0).getCompanyID ()));
-      }
-
-      final TradeAddressType aTAT = new TradeAddressType ();
-      if (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyLegalEntity ().get (0).getRegistrationAddress () != null)
-      {
-        if (aUBLInvoice.getAccountingSupplierParty ()
-                       .getParty ()
-                       .getPartyLegalEntity ()
-                       .get (0)
-                       .getRegistrationAddress ()
-                       .getCityName () != null)
-        {
-          aTAT.setCityName (aUBLInvoice.getAccountingSupplierParty ()
-                                       .getParty ()
-                                       .getPartyLegalEntity ()
-                                       .get (0)
-                                       .getRegistrationAddress ()
-                                       .getCityName ()
-                                       .getValue ());
-        }
-        if (aUBLInvoice.getAccountingSupplierParty ()
-                       .getParty ()
-                       .getPartyLegalEntity ()
-                       .get (0)
-                       .getRegistrationAddress ()
-                       .getCountry () != null &&
-            aUBLInvoice.getAccountingSupplierParty ()
-                       .getParty ()
-                       .getPartyLegalEntity ()
-                       .get (0)
-                       .getRegistrationAddress ()
-                       .getCountry ()
-                       .getIdentificationCode () != null)
-        {
-          aTAT.setCountryID (aUBLInvoice.getAccountingSupplierParty ()
-                                        .getParty ()
-                                        .getPartyLegalEntity ()
-                                        .get (0)
-                                        .getRegistrationAddress ()
-                                        .getCountry ()
-                                        .getIdentificationCode ()
-                                        .getValue ());
-        }
-        if (aUBLInvoice.getAccountingSupplierParty ()
-                       .getParty ()
-                       .getPartyLegalEntity ()
-                       .get (0)
-                       .getRegistrationAddress ()
-                       .getCountrySubentity () != null)
-        {
-          aTAT.setCountrySubDivisionName (_convertTextType (aUBLInvoice.getAccountingSupplierParty ()
-                                                                       .getParty ()
-                                                                       .getPartyLegalEntity ()
-                                                                       .get (0)
-                                                                       .getRegistrationAddress ()
-                                                                       .getCountrySubentity ()
-                                                                       .getValue ()));
-        }
-      }
-      aLOT.setPostalTradeAddress (aTAT);
+      aLOT.setTradingBusinessName (aLE.getRegistrationNameValue ());
+      if (aLE.getCompanyID () != null)
+        aLOT.setID (_convertIDType (aLE.getCompanyID ()));
+      aLOT.setPostalTradeAddress (_convertAddress (aLE.getRegistrationAddress ()));
 
       aTPT.setSpecifiedLegalOrganization (aLOT);
     }
 
-    if (aUBLInvoice.getAccountingSupplierParty () != null &&
-        aUBLInvoice.getAccountingSupplierParty ().getParty () != null &&
-        aUBLInvoice.getAccountingSupplierParty ().getParty ().getPostalAddress () != null)
-    {
-      final TradeAddressType aTATR = new TradeAddressType ();
-      if (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPostalAddress ().getPostalZone () != null)
-      {
-        aTATR.setPostcodeCode (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPostalAddress ().getPostalZone ().getValue ());
-      }
-      if (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPostalAddress ().getStreetName () != null)
-      {
-        aTATR.setLineOne (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPostalAddress ().getStreetName ().getValue ());
-      }
-      if (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPostalAddress ().getAdditionalStreetName () != null)
-      {
-        aTATR.setLineTwo (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPostalAddress ().getAdditionalStreetName ().getValue ());
-      }
-      if (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPostalAddress ().getCityName () != null)
-      {
-        aTATR.setCityName (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPostalAddress ().getCityName ().getValue ());
-      }
-      if (aUBLInvoice.getAccountingSupplierParty ().getParty ().getPostalAddress ().getCountry () != null &&
-          aUBLInvoice.getAccountingSupplierParty ().getParty ().getPostalAddress ().getCountry ().getIdentificationCode () != null)
-      {
-        aTATR.setCountryID (aUBLInvoice.getAccountingSupplierParty ()
-                                       .getParty ()
-                                       .getPostalAddress ()
-                                       .getCountry ()
-                                       .getIdentificationCode ()
-                                       .getValue ());
-      }
-      aTPT.setPostalTradeAddress (aTATR);
-    }
+    aTPT.setPostalTradeAddress (_convertAddress (aParty.getPostalAddress ()));
 
-    if (aUBLInvoice.getAccountingSupplierParty () != null &&
-        aUBLInvoice.getAccountingSupplierParty ().getParty () != null &&
-        aUBLInvoice.getAccountingSupplierParty ().getParty ().getEndpointID () != null)
+    if (aParty.getEndpointID () != null)
     {
-      final List <UniversalCommunicationType> aLstUCT = new ArrayList <> ();
       final UniversalCommunicationType aUCT = new UniversalCommunicationType ();
-      aUCT.setURIID (_convertIDType (aUBLInvoice.getAccountingSupplierParty ().getParty ().getEndpointID ()));
-      aLstUCT.add (aUCT);
-      aTPT.setURIUniversalCommunication (aLstUCT);
+      aUCT.setURIID (_convertIDType (aParty.getEndpointID ()));
+      aTPT.addURIUniversalCommunication (aUCT);
     }
 
-    if (aUBLInvoice.getAccountingSupplierParty () != null &&
-        aUBLInvoice.getAccountingSupplierParty ().getParty () != null &&
-        !aUBLInvoice.getAccountingSupplierParty ().getParty ().getPartyTaxScheme ().isEmpty ())
+    if (aParty.hasPartyTaxSchemeEntries ())
     {
-      final List <TaxRegistrationType> aLstTRT = new ArrayList <> ();
       final TaxRegistrationType aTRT = new TaxRegistrationType ();
-      aTRT.setID (_convertIDType (aUBLInvoice.getAccountingSupplierParty ()
-                                             .getParty ()
-                                             .getPartyTaxScheme ()
-                                             .get (0)
-                                             .getTaxScheme ()
-                                             .getID ()));
-      aLstTRT.add (aTRT);
-      aTPT.setSpecifiedTaxRegistration (aLstTRT);
+      aTRT.setID (_convertIDType (aParty.getPartyTaxScheme ().get (0).getTaxScheme ().getID ()));
+      aTPT.addSpecifiedTaxRegistration (aTRT);
     }
     return aTPT;
   }
 
-  @Nonnull
-  private static TradePartyType _convertBuyerTradeParty (final InvoiceType aUBLInvoice)
+  @Nullable
+  private static HeaderTradeDeliveryType _convertApplicableHeaderTradeDelivery (@Nullable final DeliveryType aDelivery)
   {
-    final TradePartyType aBTPT = new TradePartyType ();
-    if (aUBLInvoice.getAccountingCustomerParty () != null &&
-        aUBLInvoice.getAccountingCustomerParty ().getParty () != null &&
-        !aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyIdentification ().isEmpty ())
+    final HeaderTradeDeliveryType ret = new HeaderTradeDeliveryType ();
+
+    final LocationType aDL = aDelivery.getDeliveryLocation ();
+    if (aDL != null)
     {
-      final List <IDType> aLstBIT = new ArrayList <> ();
-      aLstBIT.add (_convertIDType (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyIdentification ().get (0).getID ()));
-      aBTPT.setID (aLstBIT);
+      final TradePartyType aTPTHT = new TradePartyType ();
+      if (aDL.getID () != null)
+        aTPTHT.addID (_convertIDType (aDL.getID ()));
+
+      aTPTHT.setPostalTradeAddress (_convertAddress (aDL.getAddress ()));
+      ret.setShipToTradeParty (aTPTHT);
     }
 
-    if (aUBLInvoice.getAccountingCustomerParty () != null &&
-        aUBLInvoice.getAccountingCustomerParty ().getParty () != null &&
-        !aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyName ().isEmpty ())
-    {
-      aBTPT.setName (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyName ().get (0).getNameValue ());
-    }
-
-    final LegalOrganizationType aBLOT = new LegalOrganizationType ();
-    if (aUBLInvoice.getAccountingCustomerParty () != null &&
-        aUBLInvoice.getAccountingCustomerParty ().getParty () != null &&
-        !aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyLegalEntity ().isEmpty ())
-    {
-      aBLOT.setTradingBusinessName (aUBLInvoice.getAccountingCustomerParty ()
-                                               .getParty ()
-                                               .getPartyLegalEntity ()
-                                               .get (0)
-                                               .getRegistrationNameValue ());
-      if (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyLegalEntity ().get (0).getCompanyID () != null)
-      {
-        aBLOT.setID (_convertIDType (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyLegalEntity ().get (0).getCompanyID ()));
-      }
-    }
-
-    if (aUBLInvoice.getAccountingCustomerParty () != null &&
-        aUBLInvoice.getAccountingCustomerParty ().getParty () != null &&
-        !aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyLegalEntity ().isEmpty () &&
-        aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyLegalEntity ().get (0).getRegistrationAddress () != null)
-    {
-      final TradeAddressType aBTAT = new TradeAddressType ();
-      aBTAT.setCityName (aUBLInvoice.getAccountingCustomerParty ()
-                                    .getParty ()
-                                    .getPartyLegalEntity ()
-                                    .get (0)
-                                    .getRegistrationAddress ()
-                                    .getCityName ()
-                                    .getValue ());
-      if (aUBLInvoice.getAccountingCustomerParty ()
-                     .getParty ()
-                     .getPartyLegalEntity ()
-                     .get (0)
-                     .getRegistrationAddress ()
-                     .getCountry () != null)
-      {
-        aBTAT.setCountryID (aUBLInvoice.getAccountingCustomerParty ()
-                                       .getParty ()
-                                       .getPartyLegalEntity ()
-                                       .get (0)
-                                       .getRegistrationAddress ()
-                                       .getCountry ()
-                                       .getIdentificationCode ()
-                                       .getValue ());
-      }
-      aBTAT.setCountrySubDivisionName (_convertTextType (aUBLInvoice.getAccountingCustomerParty ()
-                                                                    .getParty ()
-                                                                    .getPartyLegalEntity ()
-                                                                    .get (0)
-                                                                    .getRegistrationAddress ()
-                                                                    .getCountrySubentity ()
-                                                                    .getValue ()));
-      aBLOT.setPostalTradeAddress (aBTAT);
-    }
-
-    aBTPT.setSpecifiedLegalOrganization (aBLOT);
-
-    if (aUBLInvoice.getAccountingCustomerParty () != null &&
-        aUBLInvoice.getAccountingCustomerParty ().getParty () != null &&
-        aUBLInvoice.getAccountingCustomerParty ().getParty ().getPostalAddress () != null)
-    {
-      final TradeAddressType aBTATR = new TradeAddressType ();
-      if (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPostalAddress ().getPostalZone () != null)
-      {
-        aBTATR.setPostcodeCode (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPostalAddress ().getPostalZone ().getValue ());
-      }
-      if (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPostalAddress ().getStreetName () != null)
-      {
-        aBTATR.setLineOne (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPostalAddress ().getStreetName ().getValue ());
-      }
-      if (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPostalAddress ().getAdditionalStreetName () != null)
-      {
-        aBTATR.setLineTwo (aUBLInvoice.getAccountingCustomerParty ()
-                                      .getParty ()
-                                      .getPostalAddress ()
-                                      .getAdditionalStreetName ()
-                                      .getValue ());
-      }
-      if (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPostalAddress ().getCityName () != null)
-      {
-        aBTATR.setCityName (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPostalAddress ().getCityName ().getValue ());
-      }
-      if (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPostalAddress ().getCountry () != null)
-      {
-        aBTATR.setCountryID (aUBLInvoice.getAccountingCustomerParty ()
-                                        .getParty ()
-                                        .getPostalAddress ()
-                                        .getCountry ()
-                                        .getIdentificationCode ()
-                                        .getValue ());
-      }
-      if (aUBLInvoice.getAccountingCustomerParty ().getParty ().getPostalAddress ().getCountrySubentity () != null)
-      {
-        aBTATR.setCountrySubDivisionName (_convertTextType (aUBLInvoice.getAccountingCustomerParty ()
-                                                                       .getParty ()
-                                                                       .getPostalAddress ()
-                                                                       .getCountrySubentity ()
-                                                                       .getValue ()));
-      }
-      aBTPT.setPostalTradeAddress (aBTATR);
-    }
-
-    if (aUBLInvoice.getAccountingCustomerParty () != null &&
-        aUBLInvoice.getAccountingCustomerParty ().getParty () != null &&
-        aUBLInvoice.getAccountingCustomerParty ().getParty ().getEndpointID () != null)
-    {
-      final List <UniversalCommunicationType> aLstBUCT = new ArrayList <> ();
-      final UniversalCommunicationType aBUCT = new UniversalCommunicationType ();
-      aBUCT.setURIID (_convertIDType (aUBLInvoice.getAccountingCustomerParty ().getParty ().getEndpointID ()));
-      aLstBUCT.add (aBUCT);
-      aBTPT.setURIUniversalCommunication (aLstBUCT);
-    }
-
-    if (aUBLInvoice.getAccountingCustomerParty () != null &&
-        aUBLInvoice.getAccountingCustomerParty ().getParty () != null &&
-        !aUBLInvoice.getAccountingCustomerParty ().getParty ().getPartyTaxScheme ().isEmpty ())
-    {
-      final List <TaxRegistrationType> aLstBTRT = new ArrayList <> ();
-      final TaxRegistrationType aBTRT = new TaxRegistrationType ();
-      aBTRT.setID (_convertIDType (aUBLInvoice.getAccountingCustomerParty ()
-                                              .getParty ()
-                                              .getPartyTaxScheme ()
-                                              .get (0)
-                                              .getTaxScheme ()
-                                              .getID ()));
-      aLstBTRT.add (aBTRT);
-      aBTPT.setSpecifiedTaxRegistration (aLstBTRT);
-    }
-    return aBTPT;
-  }
-
-  @Nonnull
-  private static HeaderTradeDeliveryType _convertApplicableHeaderTradeDelivery (final InvoiceType aUBLInvoice)
-  {
-    final HeaderTradeDeliveryType aHTDT = new HeaderTradeDeliveryType ();
-    final TradePartyType aTPTHT = new TradePartyType ();
-
-    if (!aUBLInvoice.getDelivery ().isEmpty () &&
-        aUBLInvoice.getDelivery ().get (0).getDeliveryLocation () != null &&
-        aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getID () != null)
-    {
-      final List <IDType> aLstHTIT = new ArrayList <> ();
-      aLstHTIT.add (_convertIDType (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getID ()));
-      aTPTHT.setID (aLstHTIT);
-    }
-
-    if (!aUBLInvoice.getDelivery ().isEmpty () &&
-        aUBLInvoice.getDelivery ().get (0).getDeliveryLocation () != null &&
-        aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress () != null)
-    {
-      final TradeAddressType aHTTAT = new TradeAddressType ();
-      if (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress ().getPostalZone () != null)
-      {
-        aHTTAT.setPostcodeCode (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress ().getPostalZone ().getValue ());
-      }
-      if (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress ().getStreetName () != null)
-      {
-        aHTTAT.setLineOne (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress ().getStreetName ().getValue ());
-      }
-      if (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress ().getAdditionalStreetName () != null)
-      {
-        aHTTAT.setLineTwo (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress ().getAdditionalStreetName ().getValue ());
-      }
-      if (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress ().getCityName () != null)
-      {
-        aHTTAT.setCityName (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress ().getCityName ().getValue ());
-      }
-      if (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress ().getCountry () != null &&
-          aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress ().getCountry ().getIdentificationCode () != null)
-      {
-        aHTTAT.setCountryID (aUBLInvoice.getDelivery ()
-                                        .get (0)
-                                        .getDeliveryLocation ()
-                                        .getAddress ()
-                                        .getCountry ()
-                                        .getIdentificationCode ()
-                                        .getValue ());
-      }
-      if (aUBLInvoice.getDelivery ().get (0).getDeliveryLocation ().getAddress ().getCountrySubentityCodeValue () != null)
-      {
-        aHTTAT.setCountrySubDivisionName (_convertTextType (aUBLInvoice.getDelivery ()
-                                                                       .get (0)
-                                                                       .getDeliveryLocation ()
-                                                                       .getAddress ()
-                                                                       .getCountrySubentityCodeValue ()));
-      }
-      aTPTHT.setPostalTradeAddress (aHTTAT);
-      aHTDT.setShipToTradeParty (aTPTHT);
-    }
-
-    if (!aUBLInvoice.getDelivery ().isEmpty () && aUBLInvoice.getDelivery ().get (0).getActualDeliveryDate () != null)
+    if (aDelivery.getActualDeliveryDate () != null)
     {
       final SupplyChainEventType aSCET = new SupplyChainEventType ();
-      aSCET.setOccurrenceDateTime (_createDate (aUBLInvoice.getDelivery ().get (0).getActualDeliveryDate ().getValueLocal ()));
-      aHTDT.setActualDeliverySupplyChainEvent (aSCET);
+      aSCET.setOccurrenceDateTime (_createDate (aDelivery.getActualDeliveryDate ().getValueLocal ()));
+      ret.setActualDeliverySupplyChainEvent (aSCET);
     }
-    return aHTDT;
+    return ret;
   }
 
   @Nonnull
-  private static HeaderTradeSettlementType _convertApplicableHeaderTradeSettlement (final InvoiceType aUBLInvoice)
+  private static HeaderTradeSettlementType _convertApplicableHeaderTradeSettlement (@Nonnull final InvoiceType aUBLInvoice)
   {
     final HeaderTradeSettlementType aHTST = new HeaderTradeSettlementType ();
-    if (!aUBLInvoice.getPaymentMeans ().isEmpty () && !aUBLInvoice.getPaymentMeans ().get (0).getPaymentID ().isEmpty ())
-    {
-      aHTST.setPaymentReference (_convertTextType (aUBLInvoice.getPaymentMeans ().get (0).getPaymentID ().get (0).getValue ()));
-    }
+
+    final PaymentMeansType aPM = aUBLInvoice.hasPaymentMeansEntries () ? aUBLInvoice.getPaymentMeansAtIndex (0) : null;
+
+    if (aPM != null && aPM.hasPaymentIDEntries ())
+      aHTST.addPaymentReference (_convertTextType (aPM.getPaymentID ().get (0).getValue ()));
 
     aHTST.setInvoiceCurrencyCode (aUBLInvoice.getDocumentCurrencyCode ().getValue ());
-    aHTST.setPayeeTradeParty (_convertPayeeTradeParty (aUBLInvoice));
 
-    if (!aUBLInvoice.getPaymentMeans ().isEmpty ())
+    if (aUBLInvoice.getPayeeParty () != null)
+      aHTST.setPayeeTradeParty (_convertParty (aUBLInvoice.getPayeeParty ()));
+
+    if (aPM != null)
     {
-      final List <TradeSettlementPaymentMeansType> aLstTSPMT = new ArrayList <> ();
       final TradeSettlementPaymentMeansType aTSPMT = new TradeSettlementPaymentMeansType ();
-      aTSPMT.setTypeCode (aUBLInvoice.getPaymentMeans ().get (0).getPaymentMeansCodeValue ());
+      aTSPMT.setTypeCode (aPM.getPaymentMeansCodeValue ());
+
       final CreditorFinancialAccountType aCFAT = new CreditorFinancialAccountType ();
-      if (aUBLInvoice.getPaymentMeans ().get (0).getPayeeFinancialAccount () != null)
-      {
-        aCFAT.setIBANID (aUBLInvoice.getPaymentMeans ().get (0).getPayeeFinancialAccount ().getIDValue ());
-      }
+      if (aPM.getPayeeFinancialAccount () != null)
+        aCFAT.setIBANID (aPM.getPayeeFinancialAccount ().getIDValue ());
+
       aTSPMT.setPayeePartyCreditorFinancialAccount (aCFAT);
-      aLstTSPMT.add (aTSPMT);
-      aHTST.setSpecifiedTradeSettlementPaymentMeans (aLstTSPMT);
+      aHTST.addSpecifiedTradeSettlementPaymentMeans (aTSPMT);
     }
 
     aHTST.setApplicableTradeTax (_convertApplicableTradeTax (aUBLInvoice));
 
-    if (!aUBLInvoice.getInvoicePeriod ().isEmpty ())
+    if (aUBLInvoice.hasInvoicePeriodEntries ())
     {
+      final PeriodType aIP = aUBLInvoice.getInvoicePeriodAtIndex (0);
+
       final SpecifiedPeriodType aSPT = new SpecifiedPeriodType ();
-      if (aUBLInvoice.getInvoicePeriod ().get (0).getStartDate () != null)
-      {
-        aSPT.setStartDateTime (_createDate (aUBLInvoice.getInvoicePeriod ().get (0).getStartDate ().getValueLocal ()));
-      }
-      if (aUBLInvoice.getInvoicePeriod ().get (0).getEndDate () != null)
-      {
-        aSPT.setEndDateTime (_createDate (aUBLInvoice.getInvoicePeriod ().get (0).getEndDate ().getValueLocal ()));
-      }
+      if (aIP.getStartDate () != null)
+        aSPT.setStartDateTime (_createDate (aIP.getStartDate ().getValueLocal ()));
+
+      if (aIP.getEndDate () != null)
+        aSPT.setEndDateTime (_createDate (aIP.getEndDate ().getValueLocal ()));
+
       aHTST.setBillingSpecifiedPeriod (aSPT);
     }
 
@@ -690,205 +387,166 @@ public final class UBL21ToCII16BConverter
     aHTST.setSpecifiedTradePaymentTerms (_convertSpecifiedTradePaymentTerms (aUBLInvoice));
     aHTST.setSpecifiedTradeSettlementHeaderMonetarySummation (_convertSpecifiedTradeSettlementHeaderMonetarySummation (aUBLInvoice));
 
-    final List <TradeAccountingAccountType> aLstTAAT = new ArrayList <> ();
     if (aUBLInvoice.getAccountingCost () != null)
     {
       final TradeAccountingAccountType aTAAT = new TradeAccountingAccountType ();
       aTAAT.setID (aUBLInvoice.getAccountingCost ().getValue ());
-      aLstTAAT.add (aTAAT);
+      aHTST.addReceivableSpecifiedTradeAccountingAccount (aTAAT);
     }
-    aHTST.setReceivableSpecifiedTradeAccountingAccount (aLstTAAT);
 
     return aHTST;
   }
 
   @Nonnull
-  private static TradePartyType _convertPayeeTradeParty (final InvoiceType aUBLInvoice)
-  {
-    final TradePartyType aSTTPT = new TradePartyType ();
-    if (aUBLInvoice.getPayeeParty () != null && !aUBLInvoice.getPayeeParty ().getPartyIdentification ().isEmpty ())
-    {
-      final List <IDType> aLstSIT = new ArrayList <> ();
-      aLstSIT.add (_convertIDType (aUBLInvoice.getPayeeParty ().getPartyIdentification ().get (0).getID ()));
-      aSTTPT.setID (aLstSIT);
-    }
-
-    if (aUBLInvoice.getPayeeParty () != null && !aUBLInvoice.getPayeeParty ().getPartyName ().isEmpty ())
-    {
-      aSTTPT.setName (aUBLInvoice.getPayeeParty ().getPartyName ().get (0).getName ().getValue ());
-    }
-
-    if (aUBLInvoice.getPayeeParty () != null && !aUBLInvoice.getPayeeParty ().getPartyLegalEntity ().isEmpty ())
-    {
-      final LegalOrganizationType aSTLOT = new LegalOrganizationType ();
-      aSTLOT.setID (_convertIDType (aUBLInvoice.getPayeeParty ().getPartyLegalEntity ().get (0).getCompanyID ()));
-      aSTTPT.setSpecifiedLegalOrganization (aSTLOT);
-    }
-    return aSTTPT;
-  }
-
-  @Nonnull
-  private static TradeSettlementHeaderMonetarySummationType _convertSpecifiedTradeSettlementHeaderMonetarySummation (final InvoiceType aUBLInvoice)
+  private static TradeSettlementHeaderMonetarySummationType _convertSpecifiedTradeSettlementHeaderMonetarySummation (@Nonnull final InvoiceType aUBLInvoice)
   {
     final TradeSettlementHeaderMonetarySummationType aTSHMST = new TradeSettlementHeaderMonetarySummationType ();
     final MonetaryTotalType aUBLLMT = aUBLInvoice.getLegalMonetaryTotal ();
     if (aUBLLMT != null)
     {
       if (aUBLLMT.getLineExtensionAmount () != null)
-      {
-        aTSHMST.setLineTotalAmount (_convertAmountType (aUBLLMT.getLineExtensionAmount ()));
-      }
+        aTSHMST.addLineTotalAmount (_convertAmountType (aUBLLMT.getLineExtensionAmount ()));
+
       if (aUBLLMT.getChargeTotalAmount () != null)
-      {
-        aTSHMST.setChargeTotalAmount (_convertAmountType (aUBLLMT.getChargeTotalAmount ()));
-      }
+        aTSHMST.addChargeTotalAmount (_convertAmountType (aUBLLMT.getChargeTotalAmount ()));
+
       if (aUBLLMT.getAllowanceTotalAmount () != null)
-      {
-        aTSHMST.setAllowanceTotalAmount (_convertAmountType (aUBLLMT.getAllowanceTotalAmount ()));
-      }
+        aTSHMST.addAllowanceTotalAmount (_convertAmountType (aUBLLMT.getAllowanceTotalAmount ()));
+
       if (aUBLLMT.getTaxExclusiveAmount () != null)
-      {
-        aTSHMST.setTaxBasisTotalAmount (_convertAmountType (aUBLLMT.getTaxExclusiveAmount ()));
-      }
+        aTSHMST.addTaxBasisTotalAmount (_convertAmountType (aUBLLMT.getTaxExclusiveAmount ()));
     }
 
     if (!aUBLInvoice.getTaxTotal ().isEmpty () && aUBLInvoice.getTaxTotal ().get (0).getTaxAmount () != null)
-    {
-      aTSHMST.setTaxTotalAmount (_convertAmountType (aUBLInvoice.getTaxTotal ().get (0).getTaxAmount ()));
-    }
+      aTSHMST.addTaxTotalAmount (_convertAmountType (aUBLInvoice.getTaxTotal ().get (0).getTaxAmount ()));
 
     if (aUBLLMT != null)
     {
       if (aUBLLMT.getPayableRoundingAmount () != null)
-      {
-        aTSHMST.setRoundingAmount (_convertAmountType (aUBLLMT.getPayableRoundingAmount ()));
-      }
+        aTSHMST.addRoundingAmount (_convertAmountType (aUBLLMT.getPayableRoundingAmount ()));
+
       if (aUBLLMT.getTaxInclusiveAmount () != null)
-      {
-        aTSHMST.setGrandTotalAmount (_convertAmountType (aUBLLMT.getTaxInclusiveAmount ()));
-      }
+        aTSHMST.addGrandTotalAmount (_convertAmountType (aUBLLMT.getTaxInclusiveAmount ()));
+
       if (aUBLLMT.getPrepaidAmount () != null)
-      {
-        aTSHMST.setTotalPrepaidAmount (_convertAmountType (aUBLLMT.getPrepaidAmount ()));
-      }
+        aTSHMST.addTotalPrepaidAmount (_convertAmountType (aUBLLMT.getPrepaidAmount ()));
+
       if (aUBLLMT.getPayableAmount () != null)
-      {
-        aTSHMST.setDuePayableAmount (_convertAmountType (aUBLLMT.getPayableAmount ()));
-      }
+        aTSHMST.addDuePayableAmount (_convertAmountType (aUBLLMT.getPayableAmount ()));
     }
 
     return aTSHMST;
   }
 
   @Nonnull
-  private static List <TradeTaxType> _convertApplicableTradeTax (final InvoiceType aUBLInvoice)
+  private static List <TradeTaxType> _convertApplicableTradeTax (@Nonnull final InvoiceType aUBLInvoice)
   {
-    final List <TradeTaxType> aLstTTTST = new ArrayList <> ();
+    final List <TradeTaxType> ret = new ArrayList <> ();
     for (final TaxTotalType aTTT : aUBLInvoice.getTaxTotal ())
-      if (!aTTT.getTaxSubtotal ().isEmpty ())
+      if (aTTT.hasTaxSubtotalEntries ())
       {
         final TaxSubtotalType aFirst = aTTT.getTaxSubtotal ().get (0);
+
         final TradeTaxType aTTTST = new TradeTaxType ();
         if (aFirst.getTaxAmount () != null)
-        {
-          aTTTST.setCalculatedAmount (_convertAmountType (aFirst.getTaxAmount ()));
-        }
-        if (aFirst.getTaxCategory () != null)
-        {
-          aTTTST.setTypeCode (aFirst.getTaxCategory ().getIDValue ());
-        }
-        if (aFirst.getTaxableAmount () != null)
-        {
-          aTTTST.setBasisAmount (_convertAmountType (aFirst.getTaxableAmount ()));
-        }
+          aTTTST.addCalculatedAmount (_convertAmountType (aFirst.getTaxAmount ()));
 
         if (aFirst.getTaxCategory () != null)
+          aTTTST.setTypeCode (aFirst.getTaxCategory ().getIDValue ());
+
+        if (aFirst.getTaxableAmount () != null)
+          aTTTST.addBasisAmount (_convertAmountType (aFirst.getTaxableAmount ()));
+
+        final TaxCategoryType aTC = aFirst.getTaxCategory ();
+        if (aTC != null)
         {
-          if (!aFirst.getTaxCategory ().getTaxExemptionReason ().isEmpty ())
-          {
-            aTTTST.setExemptionReason (aFirst.getTaxCategory ().getTaxExemptionReason ().get (0).getValue ());
-          }
-          if (aFirst.getTaxCategory ().getTaxExemptionReasonCode () != null)
-          {
-            aTTTST.setExemptionReasonCode (aFirst.getTaxCategory ().getTaxExemptionReasonCode ().getValue ());
-          }
+          if (aTC.hasTaxExemptionReasonEntries ())
+            aTTTST.setExemptionReason (aTC.getTaxExemptionReason ().get (0).getValue ());
+
+          if (aTC.getTaxExemptionReasonCode () != null)
+            aTTTST.setExemptionReasonCode (aTC.getTaxExemptionReasonCode ().getValue ());
         }
-        aLstTTTST.add (aTTTST);
+        ret.add (aTTTST);
       }
-    return aLstTTTST;
+    return ret;
   }
 
   @Nonnull
-  private static List <TradePaymentTermsType> _convertSpecifiedTradePaymentTerms (final InvoiceType aUBLInvoice)
+  private static List <TradePaymentTermsType> _convertSpecifiedTradePaymentTerms (@Nonnull final InvoiceType aUBLInvoice)
   {
-    final List <TradePaymentTermsType> aLstTPTT = new ArrayList <> ();
+    final List <TradePaymentTermsType> ret = new ArrayList <> ();
     for (final PaymentTermsType aPTT : aUBLInvoice.getPaymentTerms ())
     {
       final TradePaymentTermsType aTPTT = new TradePaymentTermsType ();
-      if (!aPTT.getNote ().isEmpty ())
+
+      for (final var aNote : aPTT.getNote ())
+        aTPTT.addDescription (_convertTextType (aNote.getValue ()));
+
+      if (aUBLInvoice.hasPaymentMeansEntries ())
       {
-        aTPTT.setDescription (_convertTextType (aPTT.getNote ().get (0).getValue ()));
+        final PaymentMeansType aPM = aUBLInvoice.getPaymentMeans ().get (0);
+        if (aPM.getPaymentDueDate () != null)
+          aTPTT.setDueDateDateTime (_createDate (aPM.getPaymentDueDate ().getValueLocal ()));
       }
-      if (!aUBLInvoice.getPaymentMeans ().isEmpty () && aUBLInvoice.getPaymentMeans ().get (0).getPaymentDueDate () != null)
-      {
-        aTPTT.setDueDateDateTime (_createDate (aUBLInvoice.getPaymentMeans ().get (0).getPaymentDueDate ().getValueLocal ()));
-      }
-      aLstTPTT.add (aTPTT);
+      ret.add (aTPTT);
     }
-    return aLstTPTT;
+    return ret;
   }
 
   @Nonnull
-  private static List <TradeAllowanceChargeType> _convertSpecifiedTradeAllowanceCharge (final InvoiceType aUBLInvoice)
+  private static List <TradeAllowanceChargeType> _convertSpecifiedTradeAllowanceCharge (@Nonnull final InvoiceType aUBLInvoice)
   {
-    final List <TradeAllowanceChargeType> aLstTDCT = new ArrayList <> ();
+    final List <TradeAllowanceChargeType> ret = new ArrayList <> ();
     for (final AllowanceChargeType aACT : aUBLInvoice.getAllowanceCharge ())
     {
       final TradeAllowanceChargeType aTDCT = new TradeAllowanceChargeType ();
+
       final IndicatorType aITDC = new IndicatorType ();
       aITDC.setIndicator (Boolean.valueOf (aACT.getChargeIndicator ().isValue ()));
       aTDCT.setChargeIndicator (aITDC);
 
-      final List <AmountType> aLstATDC = new ArrayList <> ();
-      final AmountType aATCD = new AmountType ();
-      aATCD.setValue (aACT.getAmount ().getValue ());
-      aLstATDC.add (aATCD);
-      aTDCT.setActualAmount (aLstATDC);
+      final AmountType aAT = new AmountType ();
+      aAT.setValue (aACT.getAmount ().getValue ());
+      aTDCT.addActualAmount (aAT);
 
-      if (!aACT.getAllowanceChargeReason ().isEmpty ())
-      {
+      if (aACT.hasAllowanceChargeReasonEntries ())
         aTDCT.setReason (aACT.getAllowanceChargeReason ().get (0).getValue ());
-      }
-      aLstTDCT.add (aTDCT);
+
+      ret.add (aTDCT);
     }
-    return aLstTDCT;
+    return ret;
   }
 
   @Nonnull
-  private static List <ReferencedDocumentType> _convertAdditionalReferencedDocument (final InvoiceType aUBLInvoice)
+  private static List <ReferencedDocumentType> _convertAdditionalReferencedDocument (@Nonnull final InvoiceType aUBLInvoice)
   {
-    final List <ReferencedDocumentType> aLstRDT = new ArrayList <> ();
-    final List <BinaryObjectType> aLstBOT = new ArrayList <> ();
+    final List <ReferencedDocumentType> ret = new ArrayList <> ();
     for (final DocumentReferenceType aDRT : aUBLInvoice.getAdditionalDocumentReference ())
     {
+      final AttachmentType aAttachment = aDRT.getAttachment ();
+
       final ReferencedDocumentType aURDT = new ReferencedDocumentType ();
       aURDT.setIssuerAssignedID (aDRT.getID ().getValue ());
-      if (aDRT.getAttachment () != null &&
-          aDRT.getAttachment ().getExternalReference () != null &&
-          aDRT.getAttachment ().getExternalReference ().getURI () != null)
+
+      if (aAttachment != null)
       {
-        aURDT.setURIID (aDRT.getAttachment ().getExternalReference ().getURI ().getValue ());
+        // External Reference and Embedded Document Binary Object should be
+        // mutually exclusive
+        if (aAttachment.getExternalReference () != null && aAttachment.getExternalReference ().getURI () != null)
+        {
+          aURDT.setURIID (aAttachment.getExternalReference ().getURI ().getValue ());
+        }
+        if (aAttachment.getEmbeddedDocumentBinaryObject () != null)
+        {
+          final BinaryObjectType aBOT = new BinaryObjectType ();
+          aBOT.setMimeCode (aAttachment.getEmbeddedDocumentBinaryObject ().getMimeCode ());
+          aBOT.setValue (aAttachment.getEmbeddedDocumentBinaryObject ().getValue ());
+          aURDT.addAttachmentBinaryObject (aBOT);
+        }
       }
-      final BinaryObjectType aBOT = new BinaryObjectType ();
-      if (aDRT.getAttachment () != null && aDRT.getAttachment ().getEmbeddedDocumentBinaryObject () != null)
-      {
-        aBOT.setMimeCode (aDRT.getAttachment ().getEmbeddedDocumentBinaryObject ().getMimeCode ());
-        aBOT.setValue (aDRT.getAttachment ().getEmbeddedDocumentBinaryObject ().getValue ());
-      }
-      aLstBOT.add (aBOT);
-      aLstRDT.add (aURDT);
+      ret.add (aURDT);
     }
-    return aLstRDT;
+    return ret;
   }
 
   @Nullable
@@ -898,78 +556,85 @@ public final class UBL21ToCII16BConverter
     ValueEnforcer.notNull (aUBLInvoice, "UBLInvoice");
     ValueEnforcer.notNull (aErrorList, "ErrorList");
 
-    final ExchangedDocumentContextType aEDCT = new ExchangedDocumentContextType ();
-    if (aUBLInvoice.getCustomizationID () != null)
-    {
-      final DocumentContextParameterType aDCP = new DocumentContextParameterType ();
-      aDCP.setID (aUBLInvoice.getCustomizationIDValue ());
-      aEDCT.addGuidelineSpecifiedDocumentContextParameter (aDCP);
-    }
-
-    final ExchangedDocumentType aEDT = new ExchangedDocumentType ();
-
-    aEDT.setID (aUBLInvoice.getIDValue ());
-    aEDT.setTypeCode (aUBLInvoice.getInvoiceTypeCodeValue ());
-
-    // IssueDate
-    if (aUBLInvoice.getIssueDate () != null)
-    {
-      aEDT.setIssueDateTime (_createDate (aUBLInvoice.getIssueDate ().getValueLocal ()));
-    }
-
-    // IncludedNote
-    if (!aUBLInvoice.getNote ().isEmpty ())
-    {
-      aEDT.setIncludedNote (_convertIncludedNote (aUBLInvoice.getNote ().get (0)));
-    }
-
-    final SupplyChainTradeTransactionType aSCTT = new SupplyChainTradeTransactionType ();
-
-    // IncludedSupplyChainTradeLineItem
-    aSCTT.setIncludedSupplyChainTradeLineItem (_convertInvoiceLine (aUBLInvoice.getInvoiceLine ()));
-
-    // ApplicableHeaderTradeAgreement
-    final HeaderTradeAgreementType aHTAT = new HeaderTradeAgreementType ();
-
-    // SellerTradeParty
-    aHTAT.setSellerTradeParty (_convertSellerTradeParty (aUBLInvoice));
-
-    // BuyerTradeParty
-    aHTAT.setBuyerTradeParty (_convertBuyerTradeParty (aUBLInvoice));
-
-    // BuyerOrderReferencedDocument
-    final ReferencedDocumentType aRDT = new ReferencedDocumentType ();
-    if (aUBLInvoice.getOrderReference () != null)
-    {
-      aRDT.setIssuerAssignedID (aUBLInvoice.getOrderReference ().getID ().getValue ());
-    }
-    aHTAT.setBuyerOrderReferencedDocument (aRDT);
-
-    // ContractReferencedDocument
-    if (!aUBLInvoice.getContractDocumentReference ().isEmpty ())
-    {
-      final ReferencedDocumentType aCRDT = new ReferencedDocumentType ();
-      if (!aUBLInvoice.getContractDocumentReference ().isEmpty ())
-      {
-        aCRDT.setIssuerAssignedID (aUBLInvoice.getContractDocumentReference ().get (0).getID ().getValue ());
-      }
-      aHTAT.setContractReferencedDocument (aCRDT);
-    }
-
-    // AdditionalReferencedDocument
-    aHTAT.setAdditionalReferencedDocument (_convertAdditionalReferencedDocument (aUBLInvoice));
-    aSCTT.setApplicableHeaderTradeAgreement (aHTAT);
-
-    // ApplicableHeaderTradeDelivery
-    aSCTT.setApplicableHeaderTradeDelivery (_convertApplicableHeaderTradeDelivery (aUBLInvoice));
-
-    // ApplicableHeaderTradeSettlement
-    aSCTT.setApplicableHeaderTradeSettlement (_convertApplicableHeaderTradeSettlement (aUBLInvoice));
-
     final CrossIndustryInvoiceType aCIIInvoice = new CrossIndustryInvoiceType ();
-    aCIIInvoice.setExchangedDocumentContext (aEDCT);
-    aCIIInvoice.setExchangedDocument (aEDT);
-    aCIIInvoice.setSupplyChainTradeTransaction (aSCTT);
+
+    {
+      final ExchangedDocumentContextType aEDCT = new ExchangedDocumentContextType ();
+      if (aUBLInvoice.getCustomizationID () != null)
+      {
+        final DocumentContextParameterType aDCP = new DocumentContextParameterType ();
+        aDCP.setID (aUBLInvoice.getCustomizationIDValue ());
+        aEDCT.addGuidelineSpecifiedDocumentContextParameter (aDCP);
+      }
+      aCIIInvoice.setExchangedDocumentContext (aEDCT);
+    }
+
+    {
+      final ExchangedDocumentType aEDT = new ExchangedDocumentType ();
+      aEDT.setID (aUBLInvoice.getIDValue ());
+      aEDT.setTypeCode (aUBLInvoice.getInvoiceTypeCodeValue ());
+
+      // IssueDate
+      if (aUBLInvoice.getIssueDate () != null)
+        aEDT.setIssueDateTime (_createDate (aUBLInvoice.getIssueDate ().getValueLocal ()));
+
+      // Add add IncludedNote
+      for (final var aNote : aUBLInvoice.getNote ())
+        aEDT.addIncludedNote (_convertNote (aNote));
+
+      aCIIInvoice.setExchangedDocument (aEDT);
+    }
+
+    {
+      final SupplyChainTradeTransactionType aSCTT = new SupplyChainTradeTransactionType ();
+
+      // IncludedSupplyChainTradeLineItem
+      aSCTT.setIncludedSupplyChainTradeLineItem (_convertInvoiceLines (aUBLInvoice.getInvoiceLine ()));
+
+      // ApplicableHeaderTradeAgreement
+      {
+        final HeaderTradeAgreementType aHTAT = new HeaderTradeAgreementType ();
+
+        // SellerTradeParty
+        final SupplierPartyType aSupplierParty = aUBLInvoice.getAccountingSupplierParty ();
+        if (aSupplierParty != null)
+          aHTAT.setSellerTradeParty (_convertParty (aSupplierParty.getParty ()));
+
+        // BuyerTradeParty
+        final CustomerPartyType aCustomerParty = aUBLInvoice.getAccountingCustomerParty ();
+        if (aCustomerParty != null)
+          aHTAT.setBuyerTradeParty (_convertParty (aCustomerParty.getParty ()));
+
+        // BuyerOrderReferencedDocument
+        if (aUBLInvoice.getOrderReference () != null && aUBLInvoice.getOrderReference ().getID () != null)
+        {
+          final ReferencedDocumentType aRDT = new ReferencedDocumentType ();
+          aRDT.setIssuerAssignedID (aUBLInvoice.getOrderReference ().getID ().getValue ());
+          aHTAT.setBuyerOrderReferencedDocument (aRDT);
+        }
+
+        // ContractReferencedDocument
+        if (aUBLInvoice.hasContractDocumentReferenceEntries ())
+        {
+          final ReferencedDocumentType aCRDT = new ReferencedDocumentType ();
+          aCRDT.setIssuerAssignedID (aUBLInvoice.getContractDocumentReferenceAtIndex (0).getID ().getValue ());
+          aHTAT.setContractReferencedDocument (aCRDT);
+        }
+
+        // AdditionalReferencedDocument
+        aHTAT.setAdditionalReferencedDocument (_convertAdditionalReferencedDocument (aUBLInvoice));
+        aSCTT.setApplicableHeaderTradeAgreement (aHTAT);
+      }
+
+      // ApplicableHeaderTradeDelivery
+      if (aUBLInvoice.hasDeliveryEntries ())
+        aSCTT.setApplicableHeaderTradeDelivery (_convertApplicableHeaderTradeDelivery (aUBLInvoice.getDeliveryAtIndex (0)));
+
+      // ApplicableHeaderTradeSettlement
+      aSCTT.setApplicableHeaderTradeSettlement (_convertApplicableHeaderTradeSettlement (aUBLInvoice));
+
+      aCIIInvoice.setSupplyChainTradeTransaction (aSCTT);
+    }
 
     return aCIIInvoice;
   }
