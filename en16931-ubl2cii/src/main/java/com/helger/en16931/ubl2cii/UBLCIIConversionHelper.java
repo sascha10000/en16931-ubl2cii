@@ -55,7 +55,7 @@ public final class UBLCIIConversionHelper
       return ESuccess.FAILURE;
 
     // Main conversion
-    final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21InvoiceToCII16BConverter.convertToCrossIndustryInvoice (aUBLInvoice,
+    final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21InvoiceToCIID16BConverter.convertToCrossIndustryInvoice (aUBLInvoice,
                                                                                                                         aErrorList);
     if (aCrossIndustryInvoice == null)
       return ESuccess.FAILURE;
@@ -77,7 +77,7 @@ public final class UBLCIIConversionHelper
       return ESuccess.FAILURE;
 
     // Main conversion
-    final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21CreditNoteToCII16BConverter.convertToCrossIndustryInvoice (aUBLCreditNote,
+    final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21CreditNoteToCIID16BConverter.convertToCrossIndustryInvoice (aUBLCreditNote,
                                                                                                                            aErrorList);
     if (aCrossIndustryInvoice == null)
       return ESuccess.FAILURE;

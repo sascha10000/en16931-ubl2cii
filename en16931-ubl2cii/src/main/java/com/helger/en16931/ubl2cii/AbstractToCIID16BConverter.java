@@ -64,7 +64,7 @@ import un.unece.uncefact.data.standard.unqualifieddatatype._100.IDType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.IndicatorType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.TextType;
 
-public abstract class AbstractToCII16BConverter
+public abstract class AbstractToCIID16BConverter
 {
   private static final String CII_DATE_FORMAT = "102";
 

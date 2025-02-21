@@ -44,13 +44,13 @@ import oasis.names.specification.ubl.schema.xsd.invoice_21.InvoiceType;
 import un.unece.uncefact.data.standard.crossindustryinvoice._100.CrossIndustryInvoiceType;
 
 /**
- * Test class for class {@link UBL21InvoiceToCII16BConverter}.
+ * Test class for class {@link UBL21InvoiceToCIID16BConverter}.
  *
  * @author Philip Helger
  */
-public final class UBL21InvoiceToCII16BConverterTest
+public final class UBL21InvoiceToCIID16BConverterTest
 {
-  private static final Logger LOGGER = LoggerFactory.getLogger (UBL21InvoiceToCII16BConverterTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger (UBL21InvoiceToCIID16BConverterTest.class);
 
   @Test
   public void testConvertAndValidateAllInvoices ()
@@ -66,7 +66,7 @@ public final class UBL21InvoiceToCII16BConverterTest
       assertNotNull (aUBLInvoice);
 
       // Main conversion
-      final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21InvoiceToCII16BConverter.convertToCrossIndustryInvoice (aUBLInvoice,
+      final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21InvoiceToCIID16BConverter.convertToCrossIndustryInvoice (aUBLInvoice,
                                                                                                                           aErrorList);
       assertTrue ("Errors: " + aErrorList.toString (), aErrorList.containsNoError ());
       assertNotNull (aCrossIndustryInvoice);
