@@ -44,7 +44,7 @@ import un.unece.uncefact.data.standard.unqualifieddatatype._100.CodeType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.QuantityType;
 
 /**
- * UBL 2.1 to CII D16B converter.
+ * UBL 2.1 Invoice to CII D16B converter.
  *
  * @author Vartika Rastogi
  * @author Philip Helger

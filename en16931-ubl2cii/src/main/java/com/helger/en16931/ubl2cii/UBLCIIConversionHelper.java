@@ -25,10 +25,17 @@ import javax.annotation.WillClose;
 import javax.annotation.WillNotClose;
 import javax.annotation.concurrent.Immutable;
 
+import org.w3c.dom.Document;
+
 import com.helger.cii.d16b.CIID16BCrossIndustryInvoiceTypeMarshaller;
+import com.helger.commons.error.SingleError;
 import com.helger.commons.error.list.ErrorList;
 import com.helger.commons.state.ESuccess;
 import com.helger.ubl21.UBL21Marshaller;
+import com.helger.xml.XMLHelper;
+import com.helger.xml.sax.WrappedCollectingSAXErrorHandler;
+import com.helger.xml.serialize.read.DOMReader;
+import com.helger.xml.serialize.read.DOMReaderSettings;
 
 import oasis.names.specification.ubl.schema.xsd.creditnote_21.CreditNoteType;
 import oasis.names.specification.ubl.schema.xsd.invoice_21.InvoiceType;
@@ -45,7 +52,7 @@ public final class UBLCIIConversionHelper
   {}
 
   @Nonnull
-  public static ESuccess convertUBL21InvoicetoCIID16B (@Nonnull @WillNotClose final InputStream aIS,
+  public static ESuccess convertUBL21InvoiceToCIID16B (@Nonnull @WillNotClose final InputStream aIS,
                                                        @Nonnull @WillClose final OutputStream aOS,
                                                        @Nonnull final ErrorList aErrorList)
   {
@@ -56,7 +63,7 @@ public final class UBLCIIConversionHelper
 
     // Main conversion
     final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21InvoiceToCIID16BConverter.convertToCrossIndustryInvoice (aUBLInvoice,
-                                                                                                                        aErrorList);
+                                                                                                                         aErrorList);
     if (aCrossIndustryInvoice == null)
       return ESuccess.FAILURE;
 
@@ -67,7 +74,7 @@ public final class UBLCIIConversionHelper
   }
 
   @Nonnull
-  public static ESuccess convertUBL21CreditNotetoCIID16B (@Nonnull @WillNotClose final InputStream aIS,
+  public static ESuccess convertUBL21CreditNoteToCIID16B (@Nonnull @WillNotClose final InputStream aIS,
                                                           @Nonnull @WillClose final OutputStream aOS,
                                                           @Nonnull final ErrorList aErrorList)
   {
@@ -78,7 +85,60 @@ public final class UBLCIIConversionHelper
 
     // Main conversion
     final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21CreditNoteToCIID16BConverter.convertToCrossIndustryInvoice (aUBLCreditNote,
-                                                                                                                           aErrorList);
+                                                                                                                            aErrorList);
+    if (aCrossIndustryInvoice == null)
+      return ESuccess.FAILURE;
+
+    // Write CII D16B XML
+    return new CIID16BCrossIndustryInvoiceTypeMarshaller ().setFormattedOutput (true)
+                                                           .setCollectErrors (aErrorList)
+                                                           .write (aCrossIndustryInvoice, aOS);
+  }
+
+  @Nonnull
+  public static ESuccess convertUBL21AutoDetectToCIID16B (@Nonnull @WillNotClose final InputStream aIS,
+                                                          @Nonnull @WillClose final OutputStream aOS,
+                                                          @Nonnull final ErrorList aErrorList)
+  {
+    final Document aDoc = DOMReader.readXMLDOM (aIS,
+                                                new DOMReaderSettings ().setErrorHandler (new WrappedCollectingSAXErrorHandler (aErrorList)));
+    if (aDoc == null || aDoc.getDocumentElement () == null)
+      return ESuccess.FAILURE;
+
+    final CrossIndustryInvoiceType aCrossIndustryInvoice;
+    final String sRootLocalName = aDoc.getDocumentElement ().getLocalName ();
+
+    // Read UBL 2.1
+    if ("Invoice".equals (sRootLocalName))
+    {
+      final InvoiceType aUBLInvoice = UBL21Marshaller.invoice ().setCollectErrors (aErrorList).read (aDoc);
+      if (aUBLInvoice == null)
+        return ESuccess.FAILURE;
+
+      // Main conversion
+      aCrossIndustryInvoice = UBL21InvoiceToCIID16BConverter.convertToCrossIndustryInvoice (aUBLInvoice, aErrorList);
+    }
+    else
+      if ("CreditNote".equals (sRootLocalName))
+      {
+        final CreditNoteType aUBLCreditNote = UBL21Marshaller.creditNote ().setCollectErrors (aErrorList).read (aDoc);
+        if (aUBLCreditNote == null)
+          return ESuccess.FAILURE;
+
+        // Main conversion
+        aCrossIndustryInvoice = UBL21CreditNoteToCIID16BConverter.convertToCrossIndustryInvoice (aUBLCreditNote,
+                                                                                                 aErrorList);
+      }
+      else
+      {
+        aErrorList.add (SingleError.builderError ()
+                                   .errorText ("The XML document type " +
+                                               XMLHelper.getQName (aDoc.getDocumentElement ()) +
+                                               " is not supported")
+                                   .build ());
+        return ESuccess.FAILURE;
+      }
+
     if (aCrossIndustryInvoice == null)
       return ESuccess.FAILURE;
 

@@ -64,6 +64,11 @@ import un.unece.uncefact.data.standard.unqualifieddatatype._100.IDType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.IndicatorType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.TextType;
 
+/**
+ * Abstract base class to convert UBL to CII D16B
+ *
+ * @author Philip Helger
+ */
 public abstract class AbstractToCIID16BConverter
 {
   private static final String CII_DATE_FORMAT = "102";

@@ -67,7 +67,7 @@ public final class UBL21InvoiceToCIID16BConverterTest
 
       // Main conversion
       final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21InvoiceToCIID16BConverter.convertToCrossIndustryInvoice (aUBLInvoice,
-                                                                                                                          aErrorList);
+                                                                                                                           aErrorList);
       assertTrue ("Errors: " + aErrorList.toString (), aErrorList.containsNoError ());
       assertNotNull (aCrossIndustryInvoice);
 
