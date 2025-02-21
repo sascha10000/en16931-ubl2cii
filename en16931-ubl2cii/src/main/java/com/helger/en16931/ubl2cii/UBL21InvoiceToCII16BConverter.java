@@ -61,13 +61,13 @@ import un.unece.uncefact.data.standard.unqualifieddatatype._100.TextType;
  * @author Vartika Rastogi
  * @author Philip Helger
  */
-public final class UBL21ToCII16BConverter extends AbstractToCII16BConverter
+public final class UBL21InvoiceToCII16BConverter extends AbstractToCII16BConverter
 {
-  private UBL21ToCII16BConverter ()
+  private UBL21InvoiceToCII16BConverter ()
   {}
 
   @Nonnull
-  private static List <SupplyChainTradeLineItemType> _convertInvoiceLines (final List <oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.InvoiceLineType> aLstIL)
+  private static List <SupplyChainTradeLineItemType> _convertInvoiceLines (@Nonnull final List <InvoiceLineType> aLstIL)
   {
     final List <SupplyChainTradeLineItemType> ret = new ArrayList <> ();
     for (final InvoiceLineType aILT : aLstIL)
@@ -183,222 +183,6 @@ public final class UBL21ToCII16BConverter extends AbstractToCII16BConverter
     return ret;
   }
 
-  @Nullable
-  private static HeaderTradeDeliveryType _convertApplicableHeaderTradeDelivery (@Nullable final DeliveryType aDelivery)
-  {
-    // Object is mandatory
-    final HeaderTradeDeliveryType ret = new HeaderTradeDeliveryType ();
-
-    if (aDelivery != null)
-    {
-      final LocationType aDL = aDelivery.getDeliveryLocation ();
-      if (aDL != null)
-      {
-        final TradePartyType aTPTHT = new TradePartyType ();
-        ifNotNull (aTPTHT::addID, convertID (aDL.getID ()));
-
-        aTPTHT.setPostalTradeAddress (convertAddress (aDL.getAddress ()));
-        ret.setShipToTradeParty (aTPTHT);
-      }
-
-      if (aDelivery.getActualDeliveryDate () != null)
-      {
-        final SupplyChainEventType aSCET = new SupplyChainEventType ();
-        aSCET.setOccurrenceDateTime (convertDate (aDelivery.getActualDeliveryDate ().getValueLocal ()));
-        ret.setActualDeliverySupplyChainEvent (aSCET);
-      }
-    }
-    return ret;
-  }
-
-  @Nonnull
-  private static HeaderTradeSettlementType _convertApplicableHeaderTradeSettlement (@Nonnull final InvoiceType aUBLInvoice)
-  {
-    final HeaderTradeSettlementType ret = new HeaderTradeSettlementType ();
-
-    final PaymentMeansType aPM = aUBLInvoice.hasPaymentMeansEntries () ? aUBLInvoice.getPaymentMeansAtIndex (0) : null;
-
-    if (aPM != null && aPM.hasPaymentIDEntries ())
-      ret.addPaymentReference (convertText (aPM.getPaymentID ().get (0).getValue ()));
-
-    ret.setInvoiceCurrencyCode (aUBLInvoice.getDocumentCurrencyCode ().getValue ());
-
-    if (aUBLInvoice.getPayeeParty () != null)
-      ret.setPayeeTradeParty (convertParty (aUBLInvoice.getPayeeParty ()));
-
-    if (aPM != null)
-    {
-      final TradeSettlementPaymentMeansType aTSPMT = new TradeSettlementPaymentMeansType ();
-      aTSPMT.setTypeCode (aPM.getPaymentMeansCodeValue ());
-
-      final CreditorFinancialAccountType aCFAT = new CreditorFinancialAccountType ();
-      if (aPM.getPayeeFinancialAccount () != null)
-        aCFAT.setIBANID (aPM.getPayeeFinancialAccount ().getIDValue ());
-
-      aTSPMT.setPayeePartyCreditorFinancialAccount (aCFAT);
-      ret.addSpecifiedTradeSettlementPaymentMeans (aTSPMT);
-    }
-
-    ret.setApplicableTradeTax (_convertApplicableTradeTax (aUBLInvoice));
-
-    if (aUBLInvoice.hasInvoicePeriodEntries ())
-    {
-      final PeriodType aIP = aUBLInvoice.getInvoicePeriodAtIndex (0);
-
-      final SpecifiedPeriodType aSPT = new SpecifiedPeriodType ();
-      if (aIP.getStartDate () != null)
-        aSPT.setStartDateTime (convertDate (aIP.getStartDate ().getValueLocal ()));
-
-      if (aIP.getEndDate () != null)
-        aSPT.setEndDateTime (convertDate (aIP.getEndDate ().getValueLocal ()));
-
-      ret.setBillingSpecifiedPeriod (aSPT);
-    }
-
-    ret.setSpecifiedTradeAllowanceCharge (_convertSpecifiedTradeAllowanceCharge (aUBLInvoice));
-    ret.setSpecifiedTradePaymentTerms (_convertSpecifiedTradePaymentTerms (aUBLInvoice));
-    ret.setSpecifiedTradeSettlementHeaderMonetarySummation (_convertSpecifiedTradeSettlementHeaderMonetarySummation (aUBLInvoice));
-
-    if (aUBLInvoice.getAccountingCost () != null)
-    {
-      final TradeAccountingAccountType aTAAT = new TradeAccountingAccountType ();
-      aTAAT.setID (aUBLInvoice.getAccountingCost ().getValue ());
-      ret.addReceivableSpecifiedTradeAccountingAccount (aTAAT);
-    }
-
-    return ret;
-  }
-
-  @Nonnull
-  private static TradeSettlementHeaderMonetarySummationType _convertSpecifiedTradeSettlementHeaderMonetarySummation (@Nonnull final InvoiceType aUBLInvoice)
-  {
-    final TradeSettlementHeaderMonetarySummationType aTSHMST = new TradeSettlementHeaderMonetarySummationType ();
-    final MonetaryTotalType aUBLLMT = aUBLInvoice.getLegalMonetaryTotal ();
-    if (aUBLLMT != null)
-    {
-      ifNotNull (aTSHMST::addLineTotalAmount, convertAmount (aUBLLMT.getLineExtensionAmount ()));
-      ifNotNull (aTSHMST::addChargeTotalAmount, convertAmount (aUBLLMT.getChargeTotalAmount ()));
-      ifNotNull (aTSHMST::addAllowanceTotalAmount, convertAmount (aUBLLMT.getAllowanceTotalAmount ()));
-      ifNotNull (aTSHMST::addTaxBasisTotalAmount, convertAmount (aUBLLMT.getTaxExclusiveAmount ()));
-    }
-
-    if (aUBLInvoice.hasTaxTotalEntries ())
-    {
-      // Currency ID is required here
-      ifNotNull (aTSHMST::addTaxTotalAmount, convertAmount (aUBLInvoice.getTaxTotalAtIndex (0).getTaxAmount (), true));
-    }
-
-    if (aUBLLMT != null)
-    {
-      ifNotNull (aTSHMST::addRoundingAmount, convertAmount (aUBLLMT.getPayableRoundingAmount ()));
-      ifNotNull (aTSHMST::addGrandTotalAmount, convertAmount (aUBLLMT.getTaxInclusiveAmount ()));
-      ifNotNull (aTSHMST::addTotalPrepaidAmount, convertAmount (aUBLLMT.getPrepaidAmount ()));
-      ifNotNull (aTSHMST::addDuePayableAmount, convertAmount (aUBLLMT.getPayableAmount ()));
-    }
-
-    return aTSHMST;
-  }
-
-  @Nonnull
-  private static List <TradeTaxType> _convertApplicableTradeTax (@Nonnull final InvoiceType aUBLInvoice)
-  {
-    final List <TradeTaxType> ret = new ArrayList <> ();
-    for (final TaxTotalType aTaxTotal : aUBLInvoice.getTaxTotal ())
-      for (final TaxSubtotalType aTaxSubtotal : aTaxTotal.getTaxSubtotal ())
-      {
-        final TaxCategoryType aTaxCategory = aTaxSubtotal.getTaxCategory ();
-        final TaxSchemeType aTaxScheme = aTaxCategory.getTaxScheme ();
-
-        final TradeTaxType aTradeTax = new TradeTaxType ();
-
-        if (aTaxScheme != null)
-          ifNotEmpty (aTradeTax::setTypeCode, aTaxScheme.getIDValue ());
-        ifNotEmpty (aTradeTax::setCategoryCode, aTaxCategory.getIDValue ());
-
-        ifNotNull (aTradeTax::addCalculatedAmount, convertAmount (aTaxSubtotal.getTaxAmount ()));
-
-        if (aTaxSubtotal.getTaxCategory () != null)
-          ifNotEmpty (aTradeTax::setCategoryCode, aTaxSubtotal.getTaxCategory ().getIDValue ());
-
-        ifNotNull (aTradeTax::addBasisAmount, convertAmount (aTaxSubtotal.getTaxableAmount ()));
-        ifNotNull (aTradeTax::setRateApplicablePercent, aTaxCategory.getPercentValue ());
-
-        if (aTaxCategory.hasTaxExemptionReasonEntries ())
-          ifNotEmpty (aTradeTax::setExemptionReason, aTaxCategory.getTaxExemptionReasonAtIndex (0).getValue ());
-
-        ifNotEmpty (aTradeTax::setExemptionReasonCode, aTaxCategory.getTaxExemptionReasonCodeValue ());
-        ret.add (aTradeTax);
-      }
-    return ret;
-  }
-
-  @Nonnull
-  private static List <TradePaymentTermsType> _convertSpecifiedTradePaymentTerms (@Nonnull final InvoiceType aUBLInvoice)
-  {
-    final List <TradePaymentTermsType> ret = new ArrayList <> ();
-    for (final PaymentTermsType aPTT : aUBLInvoice.getPaymentTerms ())
-    {
-      final TradePaymentTermsType aTPTT = new TradePaymentTermsType ();
-
-      for (final var aNote : aPTT.getNote ())
-        aTPTT.addDescription (convertText (aNote.getValue ()));
-
-      if (aUBLInvoice.hasPaymentMeansEntries ())
-      {
-        final PaymentMeansType aPM = aUBLInvoice.getPaymentMeans ().get (0);
-        if (aPM.getPaymentDueDate () != null)
-          aTPTT.setDueDateDateTime (convertDate (aPM.getPaymentDueDate ().getValueLocal ()));
-      }
-      ret.add (aTPTT);
-    }
-    return ret;
-  }
-
-  @Nonnull
-  private static List <TradeAllowanceChargeType> _convertSpecifiedTradeAllowanceCharge (@Nonnull final InvoiceType aUBLInvoice)
-  {
-    final List <TradeAllowanceChargeType> ret = new ArrayList <> ();
-    for (final AllowanceChargeType aItem : aUBLInvoice.getAllowanceCharge ())
-    {
-      final TradeAllowanceChargeType aTDCT = new TradeAllowanceChargeType ();
-
-      final IndicatorType aITDC = new IndicatorType ();
-      aITDC.setIndicator (Boolean.valueOf (aItem.getChargeIndicator ().isValue ()));
-      aTDCT.setChargeIndicator (aITDC);
-
-      aTDCT.addActualAmount (convertAmount (aItem.getAmount ()));
-
-      if (aItem.getAllowanceChargeReasonCode () != null)
-        aTDCT.setReasonCode (aItem.getAllowanceChargeReasonCodeValue ());
-
-      if (aItem.hasAllowanceChargeReasonEntries ())
-        aTDCT.setReason (aItem.getAllowanceChargeReason ().get (0).getValue ());
-
-      if (aItem.getMultiplierFactorNumeric () != null)
-        aTDCT.setCalculationPercent (aItem.getMultiplierFactorNumericValue ());
-
-      if (aItem.getBaseAmount () != null)
-        aTDCT.setBasisAmount (aItem.getBaseAmountValue ());
-
-      if (aItem.hasTaxCategoryEntries ())
-      {
-        final TaxCategoryType aTaxCategory = aItem.getTaxCategoryAtIndex (0);
-        final TaxSchemeType aTaxSchene = aTaxCategory.getTaxScheme ();
-
-        final TradeTaxType aTradeTax = new TradeTaxType ();
-        if (aTaxSchene != null)
-          ifNotEmpty (aTradeTax::setTypeCode, aTaxSchene.getIDValue ());
-        ifNotEmpty (aTradeTax::setCategoryCode, aTaxCategory.getIDValue ());
-        ifNotNull (aTradeTax::setRateApplicablePercent, aTaxCategory.getPercentValue ());
-
-        aTDCT.addCategoryTradeTax (aTradeTax);
-      }
-
-      ret.add (aTDCT);
-    }
-    return ret;
-  }
-
   @Nonnull
   private static List <ReferencedDocumentType> _convertAdditionalReferencedDocument (@Nonnull final InvoiceType aUBLInvoice)
   {
@@ -452,6 +236,222 @@ public final class UBL21ToCII16BConverter extends AbstractToCII16BConverter
       }
       ret.add (aURDT);
     }
+    return ret;
+  }
+
+  @Nullable
+  private static HeaderTradeDeliveryType _createApplicableHeaderTradeDelivery (@Nullable final DeliveryType aDelivery)
+  {
+    // Object is mandatory
+    final HeaderTradeDeliveryType ret = new HeaderTradeDeliveryType ();
+
+    if (aDelivery != null)
+    {
+      final LocationType aDL = aDelivery.getDeliveryLocation ();
+      if (aDL != null)
+      {
+        final TradePartyType aTPTHT = new TradePartyType ();
+        ifNotNull (aTPTHT::addID, convertID (aDL.getID ()));
+
+        aTPTHT.setPostalTradeAddress (convertAddress (aDL.getAddress ()));
+        ret.setShipToTradeParty (aTPTHT);
+      }
+
+      if (aDelivery.getActualDeliveryDate () != null)
+      {
+        final SupplyChainEventType aSCET = new SupplyChainEventType ();
+        aSCET.setOccurrenceDateTime (convertDate (aDelivery.getActualDeliveryDate ().getValueLocal ()));
+        ret.setActualDeliverySupplyChainEvent (aSCET);
+      }
+    }
+    return ret;
+  }
+
+  @Nonnull
+  private static List <TradeTaxType> _convertApplicableTradeTax (@Nonnull final InvoiceType aUBLInvoice)
+  {
+    final List <TradeTaxType> ret = new ArrayList <> ();
+    for (final TaxTotalType aTaxTotal : aUBLInvoice.getTaxTotal ())
+      for (final TaxSubtotalType aTaxSubtotal : aTaxTotal.getTaxSubtotal ())
+      {
+        final TaxCategoryType aTaxCategory = aTaxSubtotal.getTaxCategory ();
+        final TaxSchemeType aTaxScheme = aTaxCategory.getTaxScheme ();
+
+        final TradeTaxType aTradeTax = new TradeTaxType ();
+
+        if (aTaxScheme != null)
+          ifNotEmpty (aTradeTax::setTypeCode, aTaxScheme.getIDValue ());
+        ifNotEmpty (aTradeTax::setCategoryCode, aTaxCategory.getIDValue ());
+
+        ifNotNull (aTradeTax::addCalculatedAmount, convertAmount (aTaxSubtotal.getTaxAmount ()));
+
+        if (aTaxSubtotal.getTaxCategory () != null)
+          ifNotEmpty (aTradeTax::setCategoryCode, aTaxSubtotal.getTaxCategory ().getIDValue ());
+
+        ifNotNull (aTradeTax::addBasisAmount, convertAmount (aTaxSubtotal.getTaxableAmount ()));
+        ifNotNull (aTradeTax::setRateApplicablePercent, aTaxCategory.getPercentValue ());
+
+        if (aTaxCategory.hasTaxExemptionReasonEntries ())
+          ifNotEmpty (aTradeTax::setExemptionReason, aTaxCategory.getTaxExemptionReasonAtIndex (0).getValue ());
+
+        ifNotEmpty (aTradeTax::setExemptionReasonCode, aTaxCategory.getTaxExemptionReasonCodeValue ());
+        ret.add (aTradeTax);
+      }
+    return ret;
+  }
+
+  @Nonnull
+  private static List <TradeAllowanceChargeType> _convertSpecifiedTradeAllowanceCharge (@Nonnull final InvoiceType aUBLInvoice)
+  {
+    final List <TradeAllowanceChargeType> ret = new ArrayList <> ();
+    for (final AllowanceChargeType aItem : aUBLInvoice.getAllowanceCharge ())
+    {
+      final TradeAllowanceChargeType aTDCT = new TradeAllowanceChargeType ();
+
+      final IndicatorType aITDC = new IndicatorType ();
+      aITDC.setIndicator (Boolean.valueOf (aItem.getChargeIndicator ().isValue ()));
+      aTDCT.setChargeIndicator (aITDC);
+
+      aTDCT.addActualAmount (convertAmount (aItem.getAmount ()));
+
+      if (aItem.getAllowanceChargeReasonCode () != null)
+        aTDCT.setReasonCode (aItem.getAllowanceChargeReasonCodeValue ());
+
+      if (aItem.hasAllowanceChargeReasonEntries ())
+        aTDCT.setReason (aItem.getAllowanceChargeReason ().get (0).getValue ());
+
+      if (aItem.getMultiplierFactorNumeric () != null)
+        aTDCT.setCalculationPercent (aItem.getMultiplierFactorNumericValue ());
+
+      if (aItem.getBaseAmount () != null)
+        aTDCT.setBasisAmount (aItem.getBaseAmountValue ());
+
+      if (aItem.hasTaxCategoryEntries ())
+      {
+        final TaxCategoryType aTaxCategory = aItem.getTaxCategoryAtIndex (0);
+        final TaxSchemeType aTaxSchene = aTaxCategory.getTaxScheme ();
+
+        final TradeTaxType aTradeTax = new TradeTaxType ();
+        if (aTaxSchene != null)
+          ifNotEmpty (aTradeTax::setTypeCode, aTaxSchene.getIDValue ());
+        ifNotEmpty (aTradeTax::setCategoryCode, aTaxCategory.getIDValue ());
+        ifNotNull (aTradeTax::setRateApplicablePercent, aTaxCategory.getPercentValue ());
+
+        aTDCT.addCategoryTradeTax (aTradeTax);
+      }
+
+      ret.add (aTDCT);
+    }
+    return ret;
+  }
+
+  @Nonnull
+  private static List <TradePaymentTermsType> _convertSpecifiedTradePaymentTerms (@Nonnull final InvoiceType aUBLInvoice)
+  {
+    final List <TradePaymentTermsType> ret = new ArrayList <> ();
+    for (final PaymentTermsType aPTT : aUBLInvoice.getPaymentTerms ())
+    {
+      final TradePaymentTermsType aTPTT = new TradePaymentTermsType ();
+
+      for (final var aNote : aPTT.getNote ())
+        aTPTT.addDescription (convertText (aNote.getValue ()));
+
+      if (aUBLInvoice.hasPaymentMeansEntries ())
+      {
+        final PaymentMeansType aPM = aUBLInvoice.getPaymentMeans ().get (0);
+        if (aPM.getPaymentDueDate () != null)
+          aTPTT.setDueDateDateTime (convertDate (aPM.getPaymentDueDate ().getValueLocal ()));
+      }
+      ret.add (aTPTT);
+    }
+    return ret;
+  }
+
+  @Nonnull
+  private static TradeSettlementHeaderMonetarySummationType _createSpecifiedTradeSettlementHeaderMonetarySummation (@Nonnull final InvoiceType aUBLInvoice)
+  {
+    final TradeSettlementHeaderMonetarySummationType aTSHMST = new TradeSettlementHeaderMonetarySummationType ();
+    final MonetaryTotalType aUBLLMT = aUBLInvoice.getLegalMonetaryTotal ();
+    if (aUBLLMT != null)
+    {
+      ifNotNull (aTSHMST::addLineTotalAmount, convertAmount (aUBLLMT.getLineExtensionAmount ()));
+      ifNotNull (aTSHMST::addChargeTotalAmount, convertAmount (aUBLLMT.getChargeTotalAmount ()));
+      ifNotNull (aTSHMST::addAllowanceTotalAmount, convertAmount (aUBLLMT.getAllowanceTotalAmount ()));
+      ifNotNull (aTSHMST::addTaxBasisTotalAmount, convertAmount (aUBLLMT.getTaxExclusiveAmount ()));
+    }
+
+    if (aUBLInvoice.hasTaxTotalEntries ())
+    {
+      // Currency ID is required here
+      ifNotNull (aTSHMST::addTaxTotalAmount, convertAmount (aUBLInvoice.getTaxTotalAtIndex (0).getTaxAmount (), true));
+    }
+
+    if (aUBLLMT != null)
+    {
+      ifNotNull (aTSHMST::addRoundingAmount, convertAmount (aUBLLMT.getPayableRoundingAmount ()));
+      ifNotNull (aTSHMST::addGrandTotalAmount, convertAmount (aUBLLMT.getTaxInclusiveAmount ()));
+      ifNotNull (aTSHMST::addTotalPrepaidAmount, convertAmount (aUBLLMT.getPrepaidAmount ()));
+      ifNotNull (aTSHMST::addDuePayableAmount, convertAmount (aUBLLMT.getPayableAmount ()));
+    }
+
+    return aTSHMST;
+  }
+
+  @Nonnull
+  private static HeaderTradeSettlementType _createApplicableHeaderTradeSettlement (@Nonnull final InvoiceType aUBLInvoice)
+  {
+    final HeaderTradeSettlementType ret = new HeaderTradeSettlementType ();
+
+    final PaymentMeansType aPM = aUBLInvoice.hasPaymentMeansEntries () ? aUBLInvoice.getPaymentMeansAtIndex (0) : null;
+
+    if (aPM != null && aPM.hasPaymentIDEntries ())
+      ret.addPaymentReference (convertText (aPM.getPaymentIDAtIndex (0).getValue ()));
+
+    ret.setInvoiceCurrencyCode (aUBLInvoice.getDocumentCurrencyCode ().getValue ());
+
+    if (aUBLInvoice.getPayeeParty () != null)
+      ret.setPayeeTradeParty (convertParty (aUBLInvoice.getPayeeParty ()));
+
+    if (aPM != null)
+    {
+      final TradeSettlementPaymentMeansType aTSPMT = new TradeSettlementPaymentMeansType ();
+      aTSPMT.setTypeCode (aPM.getPaymentMeansCodeValue ());
+
+      final CreditorFinancialAccountType aCFAT = new CreditorFinancialAccountType ();
+      if (aPM.getPayeeFinancialAccount () != null)
+        aCFAT.setIBANID (aPM.getPayeeFinancialAccount ().getIDValue ());
+
+      aTSPMT.setPayeePartyCreditorFinancialAccount (aCFAT);
+      ret.addSpecifiedTradeSettlementPaymentMeans (aTSPMT);
+    }
+
+    ret.setApplicableTradeTax (_convertApplicableTradeTax (aUBLInvoice));
+
+    if (aUBLInvoice.hasInvoicePeriodEntries ())
+    {
+      final PeriodType aIP = aUBLInvoice.getInvoicePeriodAtIndex (0);
+
+      final SpecifiedPeriodType aSPT = new SpecifiedPeriodType ();
+      if (aIP.getStartDate () != null)
+        aSPT.setStartDateTime (convertDate (aIP.getStartDate ().getValueLocal ()));
+
+      if (aIP.getEndDate () != null)
+        aSPT.setEndDateTime (convertDate (aIP.getEndDate ().getValueLocal ()));
+
+      ret.setBillingSpecifiedPeriod (aSPT);
+    }
+
+    ret.setSpecifiedTradeAllowanceCharge (_convertSpecifiedTradeAllowanceCharge (aUBLInvoice));
+    ret.setSpecifiedTradePaymentTerms (_convertSpecifiedTradePaymentTerms (aUBLInvoice));
+    ret.setSpecifiedTradeSettlementHeaderMonetarySummation (_createSpecifiedTradeSettlementHeaderMonetarySummation (aUBLInvoice));
+
+    if (aUBLInvoice.getAccountingCost () != null)
+    {
+      final TradeAccountingAccountType aTAAT = new TradeAccountingAccountType ();
+      aTAAT.setID (aUBLInvoice.getAccountingCost ().getValue ());
+      ret.addReceivableSpecifiedTradeAccountingAccount (aTAAT);
+    }
+
     return ret;
   }
 
@@ -533,11 +533,11 @@ public final class UBL21ToCII16BConverter extends AbstractToCII16BConverter
       }
 
       // ApplicableHeaderTradeDelivery
-      aSCTT.setApplicableHeaderTradeDelivery (_convertApplicableHeaderTradeDelivery (aUBLInvoice.hasDeliveryEntries () ? aUBLInvoice.getDeliveryAtIndex (0)
-                                                                                                                       : null));
+      aSCTT.setApplicableHeaderTradeDelivery (_createApplicableHeaderTradeDelivery (aUBLInvoice.hasDeliveryEntries () ? aUBLInvoice.getDeliveryAtIndex (0)
+                                                                                                                      : null));
 
       // ApplicableHeaderTradeSettlement
-      aSCTT.setApplicableHeaderTradeSettlement (_convertApplicableHeaderTradeSettlement (aUBLInvoice));
+      aSCTT.setApplicableHeaderTradeSettlement (_createApplicableHeaderTradeSettlement (aUBLInvoice));
 
       aCIIInvoice.setSupplyChainTradeTransaction (aSCTT);
     }

@@ -54,7 +54,7 @@ public final class UBLCIIConversionHelper
       return ESuccess.FAILURE;
 
     // Main conversion
-    final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21ToCII16BConverter.convertToCrossIndustryInvoice (aUBLInvoice, aErrorList);
+    final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21InvoiceToCII16BConverter.convertToCrossIndustryInvoice (aUBLInvoice, aErrorList);
     if (aCrossIndustryInvoice == null)
       return ESuccess.FAILURE;
 
