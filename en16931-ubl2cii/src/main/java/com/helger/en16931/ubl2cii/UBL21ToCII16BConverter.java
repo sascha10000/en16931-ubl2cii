@@ -88,6 +88,14 @@ public final class UBL21ToCII16BConverter
     return isOriginatorDocumentReferenceTypeCode (s) || "130".equals (s);
   }
 
+  @Nullable
+  private static String _getAsVAIfNecessary (@Nullable final String s)
+  {
+    if ("VAT".equals (s))
+      return "VA";
+    return s;
+  }
+
   @Nonnull
   private static String _createFormattedDateValue (@Nonnull final LocalDate aLocalDate)
   {
@@ -174,10 +182,8 @@ public final class UBL21ToCII16BConverter
 
       aDLDT.setLineID (aILT.getIDValue ());
 
-      if (aILT.hasNoteEntries ())
-      {
-        aDLDT.addIncludedNote (_convertNote (aILT.getNote ().get (0)));
-      }
+      for (final var aNote : aILT.getNote ())
+        aDLDT.addIncludedNote (_convertNote (aNote));
 
       aISCTLI.setAssociatedDocumentLineDocument (aDLDT);
 
@@ -190,15 +196,13 @@ public final class UBL21ToCII16BConverter
       }
 
       if (aIT.getSellersItemIdentification () != null)
-      {
         aTPT.setSellerAssignedID (aIT.getSellersItemIdentification ().getIDValue ());
-      }
 
       aTPT.addName (_convertTextType (aIT.getNameValue ()));
 
       if (aIT.hasDescriptionEntries ())
       {
-        aTPT.setDescription (aIT.getDescription ().get (0).getValue ());
+        aTPT.setDescription (aIT.getDescriptionAtIndex (0).getValue ());
       }
 
       // ApplicableProductCharacteristic
@@ -367,14 +371,6 @@ public final class UBL21ToCII16BConverter
       }
     }
     return aTPT;
-  }
-
-  @Nullable
-  private static String _getAsVAIfNecessary (@Nullable final String s)
-  {
-    if ("VAT".equals (s))
-      return "VA";
-    return s;
   }
 
   @Nullable
