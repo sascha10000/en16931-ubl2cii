@@ -35,6 +35,7 @@ final class MockSettings
 {
   static final DVRCoordinate VID_CII_2017 = EN16931Validation.VID_CII_1313.getWithVersionLatestRelease ();
   static final DVRCoordinate VID_UBL_INV_2017 = EN16931Validation.VID_UBL_INVOICE_1313.getWithVersionLatestRelease ();
+  static final DVRCoordinate VID_UBL_CN_2017 = EN16931Validation.VID_UBL_CREDIT_NOTE_1313.getWithVersionLatestRelease ();
 
   static final ValidationExecutorSetRegistry <IValidationSourceXML> VES_REGISTRY = new ValidationExecutorSetRegistry <> ();
   static
@@ -49,6 +50,18 @@ final class MockSettings
   {
     final ICommonsList <File> ret = new CommonsArrayList <> ();
     for (final File f : new FileSystemRecursiveIterator (new File ("src/test/resources/external/ubl21/inv")))
+      if (f.isFile () && f.getName ().endsWith (".xml"))
+        ret.add (f);
+    return ret;
+  }
+
+  @Nonnull
+  @Nonempty
+  @ReturnsMutableCopy
+  public static ICommonsList <File> getAllTestFilesUBL21CreditNote ()
+  {
+    final ICommonsList <File> ret = new CommonsArrayList <> ();
+    for (final File f : new FileSystemRecursiveIterator (new File ("src/test/resources/external/ubl21/cn")))
       if (f.isFile () && f.getName ().endsWith (".xml"))
         ret.add (f);
     return ret;

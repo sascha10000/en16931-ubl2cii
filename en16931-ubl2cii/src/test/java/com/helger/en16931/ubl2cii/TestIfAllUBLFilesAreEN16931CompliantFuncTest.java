@@ -46,7 +46,7 @@ public final class TestIfAllUBLFilesAreEN16931CompliantFuncTest
 
   @Test
   @Ignore ("This test only needs to run if new test files are added")
-  public void testConvertAndValidateAll ()
+  public void testIfAllUBLInvoicesAreENCompliant ()
   {
     for (final File aFile : MockSettings.getAllTestFilesUBL21Invoice ())
     {
@@ -62,7 +62,35 @@ public final class TestIfAllUBLFilesAreEN16931CompliantFuncTest
       {
         if (!aResult.getErrorList ().isEmpty ())
           LOGGER.error (StringHelper.imploder ()
-                                    .source (aResult.getErrorList (), x -> x.getErrorFieldName () + " - " + x.getErrorText (Locale.ROOT))
+                                    .source (aResult.getErrorList (),
+                                             x -> x.getErrorFieldName () + " - " + x.getErrorText (Locale.ROOT))
+                                    .separator ('\n')
+                                    .build ());
+        assertTrue ("Errors: " + aResult.getErrorList ().toString (), aResult.getErrorList ().isEmpty ());
+      }
+    }
+  }
+
+  @Test
+  @Ignore ("This test only needs to run if new test files are added")
+  public void testIfAllUBLCreditNotesAreENCompliant ()
+  {
+    for (final File aFile : MockSettings.getAllTestFilesUBL21CreditNote ())
+    {
+      LOGGER.info ("Testing " + aFile.toString () + " UBL CreditNote");
+
+      // Validate against EN16931 validation rules
+      final ValidationResultList aResultList = ValidationExecutionManager.executeValidation (IValidityDeterminator.createDefault (),
+                                                                                             MockSettings.VES_REGISTRY.getOfID (MockSettings.VID_UBL_CN_2017),
+                                                                                             ValidationSourceXML.create (new FileSystemResource (aFile)));
+
+      // Check that no errors (but maybe warnings) are contained
+      for (final ValidationResult aResult : aResultList)
+      {
+        if (!aResult.getErrorList ().isEmpty ())
+          LOGGER.error (StringHelper.imploder ()
+                                    .source (aResult.getErrorList (),
+                                             x -> x.getErrorFieldName () + " - " + x.getErrorText (Locale.ROOT))
                                     .separator ('\n')
                                     .build ());
         assertTrue ("Errors: " + aResult.getErrorList ().toString (), aResult.getErrorList ().isEmpty ());

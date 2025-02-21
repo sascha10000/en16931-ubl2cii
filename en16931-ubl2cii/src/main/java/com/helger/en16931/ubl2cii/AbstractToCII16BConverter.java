@@ -30,16 +30,38 @@ import com.helger.commons.math.MathHelper;
 import com.helger.commons.string.StringHelper;
 
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.AddressType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.AllowanceChargeType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.AttachmentType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.DeliveryType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.DocumentReferenceType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.LocationType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.MonetaryTotalType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.PartyLegalEntityType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.PartyTaxSchemeType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.PartyType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.PaymentMeansType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.PaymentTermsType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxCategoryType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxSchemeType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxSubtotalType;
+import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxTotalType;
+import un.unece.uncefact.data.standard.qualifieddatatype._100.FormattedDateTimeType;
+import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.HeaderTradeDeliveryType;
 import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.LegalOrganizationType;
+import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.ReferencedDocumentType;
+import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.SupplyChainEventType;
 import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.TaxRegistrationType;
 import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.TradeAddressType;
+import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.TradeAllowanceChargeType;
 import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.TradePartyType;
+import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.TradePaymentTermsType;
+import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.TradeSettlementHeaderMonetarySummationType;
+import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.TradeTaxType;
 import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.UniversalCommunicationType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.AmountType;
+import un.unece.uncefact.data.standard.unqualifieddatatype._100.BinaryObjectType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.IDType;
+import un.unece.uncefact.data.standard.unqualifieddatatype._100.IndicatorType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.TextType;
 
 public abstract class AbstractToCII16BConverter
@@ -129,14 +151,14 @@ public abstract class AbstractToCII16BConverter
   }
 
   @Nullable
-  protected static IDType convertID (@Nullable final com.helger.xsds.ccts.cct.schemamodule.IdentifierType aID)
+  protected static IDType convertID (@Nullable final com.helger.xsds.ccts.cct.schemamodule.IdentifierType aUBLID)
   {
-    if (aID == null)
+    if (aUBLID == null)
       return null;
 
     final IDType ret = new IDType ();
-    ifNotNull (ret::setSchemeID, aID.getSchemeID ());
-    ifNotNull (ret::setValue, aID.getValue ());
+    ifNotNull (ret::setSchemeID, aUBLID.getSchemeID ());
+    ifNotNull (ret::setValue, aUBLID.getValue ());
     return ret;
   }
 
@@ -161,96 +183,266 @@ public abstract class AbstractToCII16BConverter
   }
 
   @Nullable
-  protected static un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType convertNote (@Nullable final oasis.names.specification.ubl.schema.xsd.commonbasiccomponents_21.NoteType aNote)
+  protected static un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType convertNote (@Nullable final oasis.names.specification.ubl.schema.xsd.commonbasiccomponents_21.NoteType aUBLNote)
   {
-    if (aNote == null || aNote.getValue () == null)
+    if (aUBLNote == null || aUBLNote.getValue () == null)
       return null;
 
     final un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType ret = new un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.NoteType ();
     final TextType aTT = new TextType ();
-    aTT.setValue (aNote.getValue ());
+    aTT.setValue (aUBLNote.getValue ());
     ret.addContent (aTT);
     return ret;
   }
 
   @Nullable
-  protected static TradeAddressType convertAddress (@Nullable final AddressType aAddress)
+  protected static TradeAddressType convertAddress (@Nullable final AddressType aUBLAddress)
   {
-    if (aAddress == null)
+    if (aUBLAddress == null)
       return null;
 
     final TradeAddressType ret = new TradeAddressType ();
-
-    ifNotEmpty (ret::setLineOne, aAddress.getStreetNameValue ());
-    ifNotEmpty (ret::setLineTwo, aAddress.getAdditionalStreetNameValue ());
-    if (aAddress.hasAddressLineEntries ())
-      ifNotEmpty (ret::setLineThree, aAddress.getAddressLineAtIndex (0).getLineValue ());
-    ifNotEmpty (ret::setCityName, aAddress.getCityNameValue ());
-    ifNotEmpty (ret::setPostcodeCode, aAddress.getPostalZoneValue ());
-    if (aAddress.getCountrySubentity () != null)
-      ret.addCountrySubDivisionName (convertText (aAddress.getCountrySubentity ().getValue ()));
-    if (aAddress.getCountry () != null)
-      ifNotEmpty (ret::setCountryID, aAddress.getCountry ().getIdentificationCodeValue ());
-
+    ifNotEmpty (ret::setLineOne, aUBLAddress.getStreetNameValue ());
+    ifNotEmpty (ret::setLineTwo, aUBLAddress.getAdditionalStreetNameValue ());
+    if (aUBLAddress.hasAddressLineEntries ())
+      ifNotEmpty (ret::setLineThree, aUBLAddress.getAddressLineAtIndex (0).getLineValue ());
+    ifNotEmpty (ret::setCityName, aUBLAddress.getCityNameValue ());
+    ifNotEmpty (ret::setPostcodeCode, aUBLAddress.getPostalZoneValue ());
+    if (aUBLAddress.getCountrySubentity () != null)
+      ret.addCountrySubDivisionName (convertText (aUBLAddress.getCountrySubentity ().getValue ()));
+    if (aUBLAddress.getCountry () != null)
+      ifNotEmpty (ret::setCountryID, aUBLAddress.getCountry ().getIdentificationCodeValue ());
     return ret;
   }
 
   @Nullable
-  protected static TradePartyType convertParty (@Nullable final PartyType aParty)
+  protected static TradePartyType convertParty (@Nullable final PartyType aUBLParty)
   {
-    if (aParty == null)
+    if (aUBLParty == null)
       return null;
 
     final TradePartyType aTPT = new TradePartyType ();
-    for (final var aPartyID : aParty.getPartyIdentification ())
-      ifNotNull (aTPT::addID, convertID (aPartyID.getID ()));
+    for (final var aUBLPartyID : aUBLParty.getPartyIdentification ())
+      ifNotNull (aTPT::addID, convertID (aUBLPartyID.getID ()));
 
-    if (aParty.hasPartyNameEntries ())
-      ifNotEmpty (aTPT::setName, aParty.getPartyNameAtIndex (0).getNameValue ());
+    if (aUBLParty.hasPartyNameEntries ())
+      ifNotEmpty (aTPT::setName, aUBLParty.getPartyNameAtIndex (0).getNameValue ());
 
-    if (aParty.hasPartyLegalEntityEntries ())
+    if (aUBLParty.hasPartyLegalEntityEntries ())
     {
-      final PartyLegalEntityType aLE = aParty.getPartyLegalEntity ().get (0);
+      final PartyLegalEntityType aUBLLegalEntity = aUBLParty.getPartyLegalEntity ().get (0);
 
       final LegalOrganizationType aLOT = new LegalOrganizationType ();
-      ifNotEmpty (aLOT::setTradingBusinessName, aLE.getRegistrationNameValue ());
-      ifNotNull (aLOT::setID, convertID (aLE.getCompanyID ()));
-      ifNotNull (aLOT::setPostalTradeAddress, convertAddress (aLE.getRegistrationAddress ()));
+      ifNotEmpty (aLOT::setTradingBusinessName, aUBLLegalEntity.getRegistrationNameValue ());
+      ifNotNull (aLOT::setID, convertID (aUBLLegalEntity.getCompanyID ()));
+      ifNotNull (aLOT::setPostalTradeAddress, convertAddress (aUBLLegalEntity.getRegistrationAddress ()));
 
       if (StringHelper.hasNoText (aTPT.getNameValue ()))
       {
         // Fill mandatory field
-        ifNotEmpty (aTPT::setName, aLE.getRegistrationNameValue ());
+        ifNotEmpty (aTPT::setName, aUBLLegalEntity.getRegistrationNameValue ());
       }
 
       aTPT.setSpecifiedLegalOrganization (aLOT);
     }
 
-    ifNotNull (aTPT::setPostalTradeAddress, convertAddress (aParty.getPostalAddress ()));
+    ifNotNull (aTPT::setPostalTradeAddress, convertAddress (aUBLParty.getPostalAddress ()));
 
-    if (aParty.getEndpointID () != null)
+    if (aUBLParty.getEndpointID () != null)
     {
       final UniversalCommunicationType aUCT = new UniversalCommunicationType ();
-      ifNotNull (aUCT::setURIID, convertID (aParty.getEndpointID ()));
+      ifNotNull (aUCT::setURIID, convertID (aUBLParty.getEndpointID ()));
       aTPT.addURIUniversalCommunication (aUCT);
     }
 
-    if (aParty.hasPartyTaxSchemeEntries ())
+    if (aUBLParty.hasPartyTaxSchemeEntries ())
     {
-      final PartyTaxSchemeType aPTS = aParty.getPartyTaxSchemeAtIndex (0);
-      if (aPTS.getCompanyIDValue () != null)
+      final PartyTaxSchemeType aUBLPartyTaxScheme = aUBLParty.getPartyTaxSchemeAtIndex (0);
+      if (aUBLPartyTaxScheme.getCompanyIDValue () != null)
       {
         final TaxRegistrationType aTaxReg = new TaxRegistrationType ();
-        final IDType aID = convertID (aPTS.getCompanyID ());
-        if (aPTS.getTaxScheme () != null)
+        final IDType aID = convertID (aUBLPartyTaxScheme.getCompanyID ());
+        if (aUBLPartyTaxScheme.getTaxScheme () != null)
         {
           // MUST use "VA" scheme
-          ifNotEmpty (aID::setSchemeID, _getAsVAIfNecessary (aPTS.getTaxScheme ().getIDValue ()));
+          ifNotEmpty (aID::setSchemeID, _getAsVAIfNecessary (aUBLPartyTaxScheme.getTaxScheme ().getIDValue ()));
         }
         aTaxReg.setID (aID);
         aTPT.addSpecifiedTaxRegistration (aTaxReg);
       }
     }
     return aTPT;
+  }
+
+  @Nonnull
+  protected static ReferencedDocumentType convertAdditionalReferencedDocument (@Nonnull final DocumentReferenceType aUBLDocRef)
+  {
+    final ReferencedDocumentType aURDT = new ReferencedDocumentType ();
+
+    ifNotEmpty (aURDT::setIssuerAssignedID, aUBLDocRef.getIDValue ());
+
+    // Add DocumentTypeCode where possible
+    if (isValidDocumentReferenceTypeCode (aUBLDocRef.getDocumentTypeCodeValue ()))
+      aURDT.setTypeCode (aUBLDocRef.getDocumentTypeCodeValue ());
+    else
+      aURDT.setTypeCode ("916");
+
+    if (aUBLDocRef.getIssueDate () != null)
+    {
+      final FormattedDateTimeType aFIDT = new FormattedDateTimeType ();
+      aFIDT.setDateTimeString (createFormattedDateValue (aUBLDocRef.getIssueDateValueLocal ()));
+      aURDT.setFormattedIssueDateTime (aFIDT);
+    }
+
+    for (final var aUBLDocDesc : aUBLDocRef.getDocumentDescription ())
+    {
+      final TextType aText = new TextType ();
+      ifNotEmpty (aText::setValue, aUBLDocDesc.getValue ());
+      ifNotEmpty (aText::setLanguageID, aUBLDocDesc.getLanguageID ());
+      ifNotEmpty (aText::setLanguageLocaleID, aUBLDocDesc.getLanguageLocaleID ());
+      aURDT.addName (aText);
+    }
+
+    final AttachmentType aUBLAttachment = aUBLDocRef.getAttachment ();
+    if (aUBLAttachment != null)
+    {
+      // External Reference and Embedded Document Binary Object should be
+      // mutually exclusive
+      if (aUBLAttachment.getExternalReference () != null && aUBLAttachment.getExternalReference ().getURI () != null)
+      {
+        ifNotEmpty (aURDT::setURIID, aUBLAttachment.getExternalReference ().getURI ().getValue ());
+      }
+
+      if (aUBLAttachment.getEmbeddedDocumentBinaryObject () != null)
+      {
+        final BinaryObjectType aBOT = new BinaryObjectType ();
+        ifNotEmpty (aBOT::setMimeCode, aUBLAttachment.getEmbeddedDocumentBinaryObject ().getMimeCode ());
+        ifNotNull (aBOT::setValue, aUBLAttachment.getEmbeddedDocumentBinaryObject ().getValue ());
+        aURDT.addAttachmentBinaryObject (aBOT);
+      }
+    }
+    return aURDT;
+  }
+
+  @Nullable
+  protected static HeaderTradeDeliveryType createApplicableHeaderTradeDelivery (@Nullable final DeliveryType aUBLDelivery)
+  {
+    // Object is mandatory
+    final HeaderTradeDeliveryType ret = new HeaderTradeDeliveryType ();
+
+    if (aUBLDelivery != null)
+    {
+      final LocationType aUBLLocation = aUBLDelivery.getDeliveryLocation ();
+      if (aUBLLocation != null)
+      {
+        final TradePartyType aTPTHT = new TradePartyType ();
+        ifNotNull (aTPTHT::addID, convertID (aUBLLocation.getID ()));
+        ifNotNull (aTPTHT::setPostalTradeAddress, convertAddress (aUBLLocation.getAddress ()));
+        ret.setShipToTradeParty (aTPTHT);
+      }
+
+      if (aUBLDelivery.getActualDeliveryDate () != null)
+      {
+        final SupplyChainEventType aSCET = new SupplyChainEventType ();
+        aSCET.setOccurrenceDateTime (convertDate (aUBLDelivery.getActualDeliveryDate ().getValueLocal ()));
+        ret.setActualDeliverySupplyChainEvent (aSCET);
+      }
+    }
+    return ret;
+  }
+
+  @Nonnull
+  protected static TradeTaxType convertApplicableTradeTax (@Nonnull final TaxSubtotalType aUBLTaxSubtotal)
+  {
+    final TaxCategoryType aUBLTaxCategory = aUBLTaxSubtotal.getTaxCategory ();
+    final TaxSchemeType aUBLTaxScheme = aUBLTaxCategory.getTaxScheme ();
+
+    final TradeTaxType ret = new TradeTaxType ();
+    if (aUBLTaxScheme != null)
+      ifNotEmpty (ret::setTypeCode, aUBLTaxScheme.getIDValue ());
+    ifNotEmpty (ret::setCategoryCode, aUBLTaxCategory.getIDValue ());
+    ifNotNull (ret::addCalculatedAmount, convertAmount (aUBLTaxSubtotal.getTaxAmount ()));
+    ifNotEmpty (ret::setCategoryCode, aUBLTaxCategory.getIDValue ());
+    ifNotNull (ret::addBasisAmount, convertAmount (aUBLTaxSubtotal.getTaxableAmount ()));
+    ifNotNull (ret::setRateApplicablePercent, aUBLTaxCategory.getPercentValue ());
+    if (aUBLTaxCategory.hasTaxExemptionReasonEntries ())
+      ifNotEmpty (ret::setExemptionReason, aUBLTaxCategory.getTaxExemptionReasonAtIndex (0).getValue ());
+    ifNotEmpty (ret::setExemptionReasonCode, aUBLTaxCategory.getTaxExemptionReasonCodeValue ());
+    return ret;
+  }
+
+  @Nonnull
+  protected static TradeAllowanceChargeType convertSpecifiedTradeAllowanceCharge (@Nonnull final AllowanceChargeType aUBLAllowanceCharge)
+  {
+    final TradeAllowanceChargeType ret = new TradeAllowanceChargeType ();
+
+    final IndicatorType aITDC = new IndicatorType ();
+    aITDC.setIndicator (Boolean.valueOf (aUBLAllowanceCharge.getChargeIndicator ().isValue ()));
+    ret.setChargeIndicator (aITDC);
+
+    ret.addActualAmount (convertAmount (aUBLAllowanceCharge.getAmount ()));
+    ifNotEmpty (ret::setReasonCode, aUBLAllowanceCharge.getAllowanceChargeReasonCodeValue ());
+    if (aUBLAllowanceCharge.hasAllowanceChargeReasonEntries ())
+      ret.setReason (aUBLAllowanceCharge.getAllowanceChargeReason ().get (0).getValue ());
+    ifNotNull (ret::setCalculationPercent, aUBLAllowanceCharge.getMultiplierFactorNumericValue ());
+    ifNotNull (ret::setBasisAmount, aUBLAllowanceCharge.getBaseAmountValue ());
+
+    if (aUBLAllowanceCharge.hasTaxCategoryEntries ())
+    {
+      final TaxCategoryType aUBLTaxCategory = aUBLAllowanceCharge.getTaxCategoryAtIndex (0);
+      final TaxSchemeType aUBLTaxSchene = aUBLTaxCategory.getTaxScheme ();
+
+      final TradeTaxType aTradeTax = new TradeTaxType ();
+      if (aUBLTaxSchene != null)
+        ifNotEmpty (aTradeTax::setTypeCode, aUBLTaxSchene.getIDValue ());
+      ifNotEmpty (aTradeTax::setCategoryCode, aUBLTaxCategory.getIDValue ());
+      ifNotNull (aTradeTax::setRateApplicablePercent, aUBLTaxCategory.getPercentValue ());
+      ret.addCategoryTradeTax (aTradeTax);
+    }
+
+    return ret;
+  }
+
+  @Nonnull
+  protected static TradePaymentTermsType convertSpecifiedTradePaymentTerms (@Nonnull final PaymentTermsType aUBLPaymenTerms,
+                                                                            @Nullable final PaymentMeansType aUBLPaymentMeans)
+  {
+    final TradePaymentTermsType ret = new TradePaymentTermsType ();
+    for (final var aNote : aUBLPaymenTerms.getNote ())
+      ret.addDescription (convertText (aNote.getValue ()));
+
+    if (aUBLPaymentMeans != null && aUBLPaymentMeans.getPaymentDueDate () != null)
+      ret.setDueDateDateTime (convertDate (aUBLPaymentMeans.getPaymentDueDate ().getValueLocal ()));
+    return ret;
+  }
+
+  @Nonnull
+  protected static TradeSettlementHeaderMonetarySummationType createSpecifiedTradeSettlementHeaderMonetarySummation (@Nullable final MonetaryTotalType aUBLMonetaryTotal,
+                                                                                                                     @Nullable final TaxTotalType aUBLTaxTotal)
+  {
+    final TradeSettlementHeaderMonetarySummationType ret = new TradeSettlementHeaderMonetarySummationType ();
+    if (aUBLMonetaryTotal != null)
+    {
+      ifNotNull (ret::addLineTotalAmount, convertAmount (aUBLMonetaryTotal.getLineExtensionAmount ()));
+      ifNotNull (ret::addChargeTotalAmount, convertAmount (aUBLMonetaryTotal.getChargeTotalAmount ()));
+      ifNotNull (ret::addAllowanceTotalAmount, convertAmount (aUBLMonetaryTotal.getAllowanceTotalAmount ()));
+      ifNotNull (ret::addTaxBasisTotalAmount, convertAmount (aUBLMonetaryTotal.getTaxExclusiveAmount ()));
+    }
+
+    if (aUBLTaxTotal != null)
+    {
+      // Currency ID is required here
+      ifNotNull (ret::addTaxTotalAmount, convertAmount (aUBLTaxTotal.getTaxAmount (), true));
+    }
+
+    if (aUBLMonetaryTotal != null)
+    {
+      ifNotNull (ret::addRoundingAmount, convertAmount (aUBLMonetaryTotal.getPayableRoundingAmount ()));
+      ifNotNull (ret::addGrandTotalAmount, convertAmount (aUBLMonetaryTotal.getTaxInclusiveAmount ()));
+      ifNotNull (ret::addTotalPrepaidAmount, convertAmount (aUBLMonetaryTotal.getPrepaidAmount ()));
+      ifNotNull (ret::addDuePayableAmount, convertAmount (aUBLMonetaryTotal.getPayableAmount ()));
+    }
+
+    return ret;
   }
 }

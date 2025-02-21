@@ -40,39 +40,39 @@ import com.helger.phive.api.validity.IValidityDeterminator;
 import com.helger.phive.xml.source.ValidationSourceXML;
 import com.helger.ubl21.UBL21Marshaller;
 
-import oasis.names.specification.ubl.schema.xsd.invoice_21.InvoiceType;
+import oasis.names.specification.ubl.schema.xsd.creditnote_21.CreditNoteType;
 import un.unece.uncefact.data.standard.crossindustryinvoice._100.CrossIndustryInvoiceType;
 
 /**
- * Test class for class {@link UBL21InvoiceToCII16BConverter}.
+ * Test class for class {@link UBL21CreditNoteToCII16BConverter}.
  *
  * @author Philip Helger
  */
-public final class UBL21InvoiceToCII16BConverterTest
+public final class UBL21CreditNoteToCII16BConverterTest
 {
-  private static final Logger LOGGER = LoggerFactory.getLogger (UBL21InvoiceToCII16BConverterTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger (UBL21CreditNoteToCII16BConverterTest.class);
 
   @Test
   public void testConvertAndValidateAllInvoices ()
   {
-    for (final File aFile : MockSettings.getAllTestFilesUBL21Invoice ())
+    for (final File aFile : MockSettings.getAllTestFilesUBL21CreditNote ())
     {
       LOGGER.info ("Converting " + aFile.toString () + " to CII D16B");
 
       // Read as UBL
       final ErrorList aErrorList = new ErrorList ();
-      final InvoiceType aUBLInvoice = UBL21Marshaller.invoice ().setCollectErrors (aErrorList).read (aFile);
+      final CreditNoteType aUBLCreditNote = UBL21Marshaller.creditNote ().setCollectErrors (aErrorList).read (aFile);
       assertTrue ("Errors: " + aErrorList.toString (), aErrorList.containsNoError ());
-      assertNotNull (aUBLInvoice);
+      assertNotNull (aUBLCreditNote);
 
       // Main conversion
-      final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21InvoiceToCII16BConverter.convertToCrossIndustryInvoice (aUBLInvoice,
-                                                                                                                          aErrorList);
+      final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21CreditNoteToCII16BConverter.convertToCrossIndustryInvoice (aUBLCreditNote,
+                                                                                                                             aErrorList);
       assertTrue ("Errors: " + aErrorList.toString (), aErrorList.containsNoError ());
       assertNotNull (aCrossIndustryInvoice);
 
       // Save converted file
-      final File aDestFile = new File ("generated/cii/inv-" +
+      final File aDestFile = new File ("generated/cii/cn-" +
                                        FilenameHelper.getBaseName (aFile.getName ()) +
                                        "-cii.xml");
       final ESuccess eSuccess = new CIID16BCrossIndustryInvoiceTypeMarshaller ().setFormattedOutput (true)

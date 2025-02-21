@@ -30,6 +30,7 @@ import com.helger.commons.error.list.ErrorList;
 import com.helger.commons.state.ESuccess;
 import com.helger.ubl21.UBL21Marshaller;
 
+import oasis.names.specification.ubl.schema.xsd.creditnote_21.CreditNoteType;
 import oasis.names.specification.ubl.schema.xsd.invoice_21.InvoiceType;
 import un.unece.uncefact.data.standard.crossindustryinvoice._100.CrossIndustryInvoiceType;
 
@@ -54,7 +55,30 @@ public final class UBLCIIConversionHelper
       return ESuccess.FAILURE;
 
     // Main conversion
-    final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21InvoiceToCII16BConverter.convertToCrossIndustryInvoice (aUBLInvoice, aErrorList);
+    final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21InvoiceToCII16BConverter.convertToCrossIndustryInvoice (aUBLInvoice,
+                                                                                                                        aErrorList);
+    if (aCrossIndustryInvoice == null)
+      return ESuccess.FAILURE;
+
+    // Write CII D16B XML
+    return new CIID16BCrossIndustryInvoiceTypeMarshaller ().setFormattedOutput (true)
+                                                           .setCollectErrors (aErrorList)
+                                                           .write (aCrossIndustryInvoice, aOS);
+  }
+
+  @Nonnull
+  public static ESuccess convertUBL21CreditNotetoCIID16B (@Nonnull @WillNotClose final InputStream aIS,
+                                                          @Nonnull @WillClose final OutputStream aOS,
+                                                          @Nonnull final ErrorList aErrorList)
+  {
+    // Read UBL 2.1
+    final CreditNoteType aUBLCreditNote = UBL21Marshaller.creditNote ().setCollectErrors (aErrorList).read (aIS);
+    if (aUBLCreditNote == null)
+      return ESuccess.FAILURE;
+
+    // Main conversion
+    final CrossIndustryInvoiceType aCrossIndustryInvoice = UBL21CreditNoteToCII16BConverter.convertToCrossIndustryInvoice (aUBLCreditNote,
+                                                                                                                           aErrorList);
     if (aCrossIndustryInvoice == null)
       return ESuccess.FAILURE;
 
