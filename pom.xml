@@ -20,18 +20,42 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.helger</groupId>
     <artifactId>parent-pom</artifactId>
     <version>2.0.6</version>
   </parent>
-  <modelVersion>4.0.0</modelVersion>
   <artifactId>en16931-ubl2cii-parent-pom</artifactId>
+  <version>1.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>en16931-ubl2cii-parent-pom</name>
   <inceptionYear>2024</inceptionYear>
-  <version>1.1.0-SNAPSHOT</version>
   <url>https://github.com/phax/en16931-ubl2cii</url>
+
+  <licenses>
+    <license>
+      <name>Apache 2</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:git:https://github.com/phax/en16931-ubl2cii.git</connection>
+    <developerConnection>scm:git:https://github.com/phax/en16931-ubl2cii.git</developerConnection>
+    <url>https://github.com/phax/en16931-ubl2cii</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <developers>
+    <developer>
+      <id>philip</id>
+      <name>Philip Helger</name>
+      <email>ph(at)helger.com</email>
+      <url>https://www.helger.com</url>
+    </developer>
+  </developers>
 
   <properties>
     <phive-rules.version>3.2.6</phive-rules.version>
