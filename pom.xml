@@ -31,6 +31,7 @@
   <name>en16931-ubl2cii-parent-pom</name>
   <inceptionYear>2024</inceptionYear>
   <version>1.1.0-SNAPSHOT</version>
+  <url>https://github.com/phax/en16931-ubl2cii</url>
 
   <properties>
     <phive-rules.version>3.2.6</phive-rules.version>

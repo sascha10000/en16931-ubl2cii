@@ -30,6 +30,7 @@
   <packaging>jar</packaging>
   <name>en16931-ubl2cii</name>
   <inceptionYear>2024</inceptionYear>
+  <url>https://github.com/phax/en16931-ubl2cii/en16931-ubl2cii</url>
 
   <dependencies>
     <dependency>
