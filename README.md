@@ -17,7 +17,8 @@ This library is licensed under the Apache License Version 2.0.
 
 # News and noteworthy
 
-* v1.1.0 - work in progress
+* v1.1.0 - 2025-02-22
+    * Added a simple command line client
     * The created CII documents are now compliant to the EN 16931:2017 validation artefacts
     * Added support to convert UBL 2.1 CreditNotes as well
     * Initial fork from https://github.com/VartikaG02/en16931-ubl2cii
