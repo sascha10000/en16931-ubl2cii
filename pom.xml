@@ -60,11 +60,18 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
+      <dependency>
+        <groupId>com.helger</groupId>
+        <artifactId>en16931-ubl2cii</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
   <modules>
     <module>en16931-ubl2cii</module>
+    <module>en16931-ubl2cii-cli</module>
   </modules>
 
   <build>

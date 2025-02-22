@@ -47,9 +47,9 @@ import un.unece.uncefact.data.standard.crossindustryinvoice._100.CrossIndustryIn
  * @author Philip Helger
  */
 @Immutable
-public final class UBLCIIConversionHelper
+public final class UBLToCIIConversionHelper
 {
-  private UBLCIIConversionHelper ()
+  private UBLToCIIConversionHelper ()
   {}
 
   @Nullable
