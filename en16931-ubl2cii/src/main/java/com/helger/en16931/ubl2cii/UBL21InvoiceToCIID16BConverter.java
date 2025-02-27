@@ -239,6 +239,11 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
         aDCP.setID (aUBLInvoice.getCustomizationIDValue ());
         aEDCT.addGuidelineSpecifiedDocumentContextParameter (aDCP);
       }
+      if(aUBLInvoice.getProfileID() != null) {
+        final DocumentContextParameterType aDCP = new DocumentContextParameterType ();
+        aDCP.setID (aUBLInvoice.getProfileIDValue ());
+        aEDCT.addBusinessProcessSpecifiedDocumentContextParameter(aDCP);
+      }
       aCIIInvoice.setExchangedDocumentContext (aEDCT);
     }
 
@@ -268,6 +273,9 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
       // ApplicableHeaderTradeAgreement
       {
         final HeaderTradeAgreementType aHTAT = new HeaderTradeAgreementType ();
+
+        // BuyerReference (in B2G context used for PEPPOL routing, but it is generally mandatory)
+        aHTAT.setBuyerReference(aUBLInvoice.getBuyerReferenceValue ());
 
         // SellerTradeParty
         final SupplierPartyType aSupplierParty = aUBLInvoice.getAccountingSupplierParty ();
