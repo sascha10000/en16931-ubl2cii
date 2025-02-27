@@ -244,7 +244,8 @@ public abstract class AbstractToCIID16BConverter {
     return aTPT;
   }
 
-  private static TradeContactType convertPersonType(final PersonType aPerson) {
+  @Nonnull
+  protected static TradeContactType convertPersonType(final PersonType aPerson) {
     TradeContactType aTCT;
     if(aPerson.getContact() != null)
       aTCT = convertPersonType(aPerson.getContact());
@@ -256,7 +257,8 @@ public abstract class AbstractToCIID16BConverter {
     return aTCT;
   }
 
-  private static TradeContactType convertPersonType(final ContactType aContact) {
+  @Nonnull
+  protected static TradeContactType convertPersonType(final ContactType aContact) {
     var aTCT = new TradeContactType();
     aTCT.setPersonName(aContact.getNameValue());
     aTCT.setTelephoneUniversalCommunication(convertUniversalCommunication(aContact.getTelephoneValue(), CommunicationType.Telephone));
@@ -264,18 +266,19 @@ public abstract class AbstractToCIID16BConverter {
     return aTCT;
   }
 
-  private enum CommunicationType {
+  protected enum CommunicationType {
     Telephone,
     Email
   }
 
-  private static UniversalCommunicationType convertUniversalCommunication(final String value, CommunicationType aType) {
+  @Nullable
+  protected static UniversalCommunicationType convertUniversalCommunication(final String value, CommunicationType eType) {
     if (value == null){
       return null;
     }
 
     var aUCT = new UniversalCommunicationType();
-    switch (aType) {
+    switch ( eType) {
       case Email:
         aUCT.setURIID(value);
         break;
