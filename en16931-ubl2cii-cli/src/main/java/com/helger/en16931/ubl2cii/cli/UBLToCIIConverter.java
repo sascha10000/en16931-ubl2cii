@@ -211,7 +211,7 @@ public class UBLToCIIConverter implements Callable <Integer>
       // Perform the main conversion
       final ErrorList aErrorList = new ErrorList ();
       final CrossIndustryInvoiceType aCII = UBLToCIIConversionHelper.convertUBL21AutoDetectToCIID16B (FileHelper.getInputStream (f),
-                                                                                                      aErrorList);
+        aErrorList);
       if (aErrorList.containsAtLeastOneError () || aCII == null)
       {
         LOGGER.error ("Failed to convert UBL file '" + f.getAbsolutePath () + "' to CII:");

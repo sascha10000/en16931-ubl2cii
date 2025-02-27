@@ -65,7 +65,7 @@
 
   <build>
     <resources>
-      <!-- Don't specify the targetPath because this leads to a broken JAR file 
+      <!-- Don't specify the targetPath because this leads to a broken JAR file
         in combination with the bundle plugin (absolute file paths in ZIP file) -->
       <resource>
         <directory>${basedir}/src/main/resources</directory>

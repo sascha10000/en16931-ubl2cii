@@ -1,3 +1,4 @@
+.DS_Store
 .classpath
 .project
 zz
@@ -9,3 +10,6 @@ target/
 *-cii.xml
 pom.xml.releaseBackup
 release.properties
+
+.idea/
+out/
