@@ -37,11 +37,18 @@ import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.Tax
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxSchemeType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxSubtotalType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxTotalType;
+import oasis.names.specification.ubl.schema.xsd.commonbasiccomponents_21.LineExtensionAmountType;
 import oasis.names.specification.ubl.schema.xsd.invoice_21.InvoiceType;
 import un.unece.uncefact.data.standard.crossindustryinvoice._100.CrossIndustryInvoiceType;
 import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.*;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.CodeType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.QuantityType;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * UBL 2.1 Invoice to CII D16B converter.
@@ -54,18 +61,36 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
   private UBL21InvoiceToCIID16BConverter ()
   {}
 
+
   @Nonnull
-  private static SupplyChainTradeLineItemType _convertInvoiceLine (@Nonnull final InvoiceLineType aUBLLine)
+  private static List<SupplyChainTradeLineItemType> _convertInvoiceLine (@Nonnull final InvoiceLineType aUBLLine)
   {
-    final SupplyChainTradeLineItemType ret = new SupplyChainTradeLineItemType ();
+    return _convertInvoiceLine(aUBLLine, null);
+  }
+
+  @Nonnull
+  private static List<SupplyChainTradeLineItemType> _convertInvoiceLine (@Nonnull final InvoiceLineType aUBLLine, String parentID)
+  {
+    final SupplyChainTradeLineItemType supplyChainTradeLineItemType = new SupplyChainTradeLineItemType ();
     final DocumentLineDocumentType aDLDT = new DocumentLineDocumentType ();
+    final List<SupplyChainTradeLineItemType> ret = new ArrayList<>();
 
     aDLDT.setLineID (aUBLLine.getIDValue ());
+
+    if(parentID != null) {
+      aDLDT.setParentLineID(parentID);
+    }
+
+    if(aUBLLine.hasSubInvoiceLineEntries()) {
+      aUBLLine.getPrice().setPriceAmount(new BigDecimal(0));
+      aUBLLine.setLineExtensionAmount(new BigDecimal(0));
+      aUBLLine.setAllowanceCharge(new ArrayList<>()); // this must be set on billing level
+    }
 
     for (final var aUBLNote : aUBLLine.getNote ())
       aDLDT.addIncludedNote (convertNote (aUBLNote));
 
-    ret.setAssociatedDocumentLineDocument (aDLDT);
+    supplyChainTradeLineItemType.setAssociatedDocumentLineDocument (aDLDT);
 
     // SpecifiedTradeProduct
     final TradeProductType aTPT = new TradeProductType ();
@@ -100,7 +125,7 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
       aPCT.setClassCode (aCT);
       aTPT.addDesignatedProductClassification (aPCT);
     }
-    ret.setSpecifiedTradeProduct (aTPT);
+    supplyChainTradeLineItemType.setSpecifiedTradeProduct (aTPT);
 
     // BuyerOrderReferencedDocument
     final ReferencedDocumentType aRDT = new ReferencedDocumentType ();
@@ -119,8 +144,7 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
     // SpecifiedLineTradeAgreement
     final LineTradeAgreementType aLTAT = new LineTradeAgreementType ();
     aLTAT.setBuyerOrderReferencedDocument (aRDT);
-    aLTAT.setNetPriceProductTradePrice (aLTPT);
-    ret.setSpecifiedLineTradeAgreement (aLTAT);
+
 
     // SpecifiedLineTradeDelivery
     final LineTradeDeliveryType aLTDT = new LineTradeDeliveryType ();
@@ -128,7 +152,6 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
     aQuantity.setUnitCode (aUBLLine.getInvoicedQuantity ().getUnitCode ());
     aQuantity.setValue (aUBLLine.getInvoicedQuantity ().getValue ());
     aLTDT.setBilledQuantity (aQuantity);
-    ret.setSpecifiedLineTradeDelivery (aLTDT);
 
     // SpecifiedLineTradeSettlement
     final LineTradeSettlementType aSLTS = new LineTradeSettlementType ();
@@ -144,6 +167,10 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
       aSLTS.addApplicableTradeTax (aTradeTax);
     }
 
+    for(final AllowanceChargeType allowanceCharge : aUBLLine.getAllowanceCharge()) {
+      aSLTS.addSpecifiedTradeAllowanceCharge(convertSpecifiedTradeAllowanceCharge(allowanceCharge));
+    }
+
     final TradeSettlementLineMonetarySummationType aTSLMST = new TradeSettlementLineMonetarySummationType ();
     ifNotNull (aTSLMST::addLineTotalAmount, convertAmount (aUBLLine.getLineExtensionAmount ()));
 
@@ -153,9 +180,21 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
       aTAATL.setID (aUBLLine.getAccountingCostValue ());
       aSLTS.addReceivableSpecifiedTradeAccountingAccount (aTAATL);
     }
+    aSLTS.setSpecifiedTradeSettlementLineMonetarySummation(aTSLMST);
 
-    aSLTS.setSpecifiedTradeSettlementLineMonetarySummation (aTSLMST);
-    ret.setSpecifiedLineTradeSettlement (aSLTS);
+    supplyChainTradeLineItemType.setSpecifiedLineTradeDelivery (aLTDT);
+    supplyChainTradeLineItemType.setSpecifiedLineTradeAgreement (aLTAT);
+    supplyChainTradeLineItemType.setSpecifiedLineTradeSettlement(aSLTS);
+
+    ret.add(supplyChainTradeLineItemType);
+
+    // SubInvoiceLine handling
+    if(aUBLLine.hasSubInvoiceLineEntries()) {
+      for(int i = 0; i < aUBLLine.getSubInvoiceLineCount(); i++) {
+        var subInvoiceLines = _convertInvoiceLine(Objects.requireNonNull(aUBLLine.getSubInvoiceLineAtIndex(i)), aDLDT.getLineIDValue());
+        ret.addAll (subInvoiceLines);
+      }
+    }
 
     return ret;
   }
@@ -200,6 +239,19 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
       if (aUBLPeriod.getEndDate () != null)
         aSPT.setEndDateTime (convertDate (aUBLPeriod.getEndDate ().getValueLocal ()));
       ret.setBillingSpecifiedPeriod (aSPT);
+    }
+
+
+    // Get all InvoiceLines with SubInvoiceLines
+    var parentInvoiceLines = new ArrayList<InvoiceLineType>();
+    for(final var aSubInvoiceLine : aUBLInvoice.getInvoiceLine())
+      parentInvoiceLines.addAll(getAllParentInvoiceLines(aSubInvoiceLine));
+
+    for(final var aParentInvoiceLine : parentInvoiceLines) {
+      // TODO:
+      // - Add all allowances/charges from subInvoiceLines to billing level
+      //    - It may be needed to convert the percent based allowances/charges to absolute numbers
+      // - Add the sum of all allowances/charges to the Summaries LineExtensionAmount
     }
 
     for (final AllowanceChargeType aUBLAllowanceCharge : aUBLInvoice.getAllowanceCharge ())
@@ -267,8 +319,11 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
       final SupplyChainTradeTransactionType aSCTT = new SupplyChainTradeTransactionType ();
 
       // IncludedSupplyChainTradeLineItem
-      for (final var aLine : aUBLInvoice.getInvoiceLine ())
-        aSCTT.addIncludedSupplyChainTradeLineItem (_convertInvoiceLine (aLine));
+      List<InvoiceLineType> invoiceLine = aUBLInvoice.getInvoiceLine();
+      for (InvoiceLineType aLine : invoiceLine) {
+        _convertInvoiceLine(aLine).forEach(aSCTT::addIncludedSupplyChainTradeLineItem);
+      }
+
 
       // ApplicableHeaderTradeAgreement
       {
@@ -320,5 +375,16 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
     }
 
     return aCIIInvoice;
+  }
+
+  public static List<InvoiceLineType> getAllParentInvoiceLines (@Nonnull final InvoiceLineType aInvoiceLine) {
+    final List <InvoiceLineType> ret = new ArrayList <> ();
+    if(aInvoiceLine.hasSubInvoiceLineEntries()) {
+      ret.add(aInvoiceLine);
+      for(final var subInvoiceLine : aInvoiceLine.getSubInvoiceLine()) {
+        ret.addAll (getAllParentInvoiceLines (subInvoiceLine));
+      }
+    }
+    return ret;
   }
 }
