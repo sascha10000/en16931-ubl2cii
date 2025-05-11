@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
 import com.helger.commons.ValueEnforcer;
 import com.helger.commons.error.list.ErrorList;
 
+import com.sascha10k.helper.TaxCategory;
+import com.sascha10k.helper.Tuple2;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.AllowanceChargeType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.CommodityClassificationType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.CustomerPartyType;
@@ -37,17 +39,19 @@ import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.Tax
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxSchemeType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxSubtotalType;
 import oasis.names.specification.ubl.schema.xsd.commonaggregatecomponents_21.TaxTotalType;
+import oasis.names.specification.ubl.schema.xsd.commonbasiccomponents_21.IDType;
 import oasis.names.specification.ubl.schema.xsd.commonbasiccomponents_21.LineExtensionAmountType;
+import oasis.names.specification.ubl.schema.xsd.commonbasiccomponents_21.MultiplierFactorNumericType;
+import oasis.names.specification.ubl.schema.xsd.commonbasiccomponents_21.TaxTypeCodeType;
 import oasis.names.specification.ubl.schema.xsd.invoice_21.InvoiceType;
 import un.unece.uncefact.data.standard.crossindustryinvoice._100.CrossIndustryInvoiceType;
 import un.unece.uncefact.data.standard.reusableaggregatebusinessinformationentity._100.*;
+import un.unece.uncefact.data.standard.unqualifieddatatype._100.AmountType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.CodeType;
 import un.unece.uncefact.data.standard.unqualifieddatatype._100.QuantityType;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -81,6 +85,7 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
       aDLDT.setParentLineID(parentID);
     }
 
+    var aAllowanceChargeList = aUBLLine.getAllowanceCharge();
     if(aUBLLine.hasSubInvoiceLineEntries()) {
       aUBLLine.getPrice().setPriceAmount(new BigDecimal(0));
       aUBLLine.setLineExtensionAmount(new BigDecimal(0));
@@ -144,7 +149,7 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
     // SpecifiedLineTradeAgreement
     final LineTradeAgreementType aLTAT = new LineTradeAgreementType ();
     aLTAT.setBuyerOrderReferencedDocument (aRDT);
-
+    aLTAT.setNetPriceProductTradePrice (aLTPT);
 
     // SpecifiedLineTradeDelivery
     final LineTradeDeliveryType aLTDT = new LineTradeDeliveryType ();
@@ -171,6 +176,10 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
       aSLTS.addSpecifiedTradeAllowanceCharge(convertSpecifiedTradeAllowanceCharge(allowanceCharge));
     }
 
+    // set it back, as it needs to be available to be put on billing level
+    if(aUBLLine.hasSubInvoiceLineEntries())
+      aUBLLine.setAllowanceCharge(aAllowanceChargeList);
+
     final TradeSettlementLineMonetarySummationType aTSLMST = new TradeSettlementLineMonetarySummationType ();
     ifNotNull (aTSLMST::addLineTotalAmount, convertAmount (aUBLLine.getLineExtensionAmount ()));
 
@@ -195,7 +204,6 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
         ret.addAll (subInvoiceLines);
       }
     }
-
     return ret;
   }
 
@@ -241,19 +249,6 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
       ret.setBillingSpecifiedPeriod (aSPT);
     }
 
-
-    // Get all InvoiceLines with SubInvoiceLines
-    var parentInvoiceLines = new ArrayList<InvoiceLineType>();
-    for(final var aSubInvoiceLine : aUBLInvoice.getInvoiceLine())
-      parentInvoiceLines.addAll(getAllParentInvoiceLines(aSubInvoiceLine));
-
-    for(final var aParentInvoiceLine : parentInvoiceLines) {
-      // TODO:
-      // - Add all allowances/charges from subInvoiceLines to billing level
-      //    - It may be needed to convert the percent based allowances/charges to absolute numbers
-      // - Add the sum of all allowances/charges to the Summaries LineExtensionAmount
-    }
-
     for (final AllowanceChargeType aUBLAllowanceCharge : aUBLInvoice.getAllowanceCharge ())
       ret.addSpecifiedTradeAllowanceCharge (convertSpecifiedTradeAllowanceCharge (aUBLAllowanceCharge));
 
@@ -261,8 +256,9 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
       ret.addSpecifiedTradePaymentTerms (convertSpecifiedTradePaymentTerms (aUBLPaymentTerms, aUBLPaymentMeans));
 
     final TaxTotalType aUBLTaxTotal = aUBLInvoice.hasTaxTotalEntries () ? aUBLInvoice.getTaxTotalAtIndex (0) : null;
-    ret.setSpecifiedTradeSettlementHeaderMonetarySummation (createSpecifiedTradeSettlementHeaderMonetarySummation (aUBLInvoice.getLegalMonetaryTotal (),
-                                                                                                                   aUBLTaxTotal));
+    ret.setSpecifiedTradeSettlementHeaderMonetarySummation (createSpecifiedTradeSettlementHeaderMonetarySummation (aUBLInvoice.getLegalMonetaryTotal (), aUBLTaxTotal));
+
+    _handleParentInvoiceLines(ret, aUBLInvoice);
 
     if (aUBLInvoice.getAccountingCost () != null)
     {
@@ -272,6 +268,93 @@ public final class UBL21InvoiceToCIID16BConverter extends AbstractToCIID16BConve
     }
 
     return ret;
+  }
+
+  @Nullable
+  public static HeaderTradeSettlementType _handleParentInvoiceLines(final HeaderTradeSettlementType aHTP, final InvoiceType aUBLInvoice){
+    var parentInvoiceLines = new ArrayList<InvoiceLineType>();
+    for(final var aSubInvoiceLine : aUBLInvoice.getInvoiceLine())
+      parentInvoiceLines.addAll(getAllParentInvoiceLines(aSubInvoiceLine));
+
+
+
+    var monetarySums = aHTP.getSpecifiedTradeSettlementHeaderMonetarySummation();
+    for(final var aParentInvoiceLine : parentInvoiceLines) {
+      aParentInvoiceLine.getAllowanceCharge().forEach(aAllowanceCharge -> {
+        if(aAllowanceCharge.getMultiplierFactorNumeric() != null && aAllowanceCharge.getBaseAmount() != null) {
+          aAllowanceCharge.setMultiplierFactorNumeric((MultiplierFactorNumericType) null);
+          aAllowanceCharge.setBaseAmount((BigDecimal) null);
+        }
+
+        var amount = aAllowanceCharge.getAmountValue();
+        if(aAllowanceCharge.getChargeIndicator().isValue()){
+          amount = amount.multiply(new BigDecimal(-1));
+          monetarySums.addChargeTotalAmount(convertAmount(aAllowanceCharge.getAmount()));
+        } else {
+          monetarySums.addAllowanceTotalAmount(convertAmount(aAllowanceCharge.getAmount()));
+        }
+
+        var taxCategories = convertToTaxCategories(aUBLInvoice).getT1();
+        for(var key : taxCategories.keySet()){
+          var taxCat = taxCategories.get(key);
+          var newTaxCat = new TaxCategoryType ();
+          newTaxCat.setID(new IDType(taxCat.taxScheme));
+          newTaxCat.setPercent(taxCat.taxPercentage);
+          var tst  = new TaxSchemeType();
+          tst.setID(new IDType("id"));
+          tst.setTaxTypeCode(new TaxTypeCodeType("code"));
+          tst.setName("name");
+          newTaxCat.setTaxScheme(tst);
+          aAllowanceCharge.setTaxCategory(List.of(newTaxCat));
+        }
+
+        monetarySums.addLineTotalAmount(new AmountType(amount));
+        aHTP.addSpecifiedTradeAllowanceCharge(convertSpecifiedTradeAllowanceCharge(aAllowanceCharge));
+      });
+    }
+
+    if(!parentInvoiceLines.isEmpty ()){
+      var aLTA = sumAmountTypeList(monetarySums.getLineTotalAmount());
+      var aLCA = sumAmountTypeList(monetarySums.getChargeTotalAmount());
+      var aLAA = sumAmountTypeList(monetarySums.getAllowanceTotalAmount());
+
+      monetarySums.setLineTotalAmount(aLTA);
+      monetarySums.setChargeTotalAmount(aLCA);
+      monetarySums.setAllowanceTotalAmount(aLAA);
+    }
+
+    return aHTP;
+  }
+
+  public static Tuple2<Map<String, TaxCategory>, BigDecimal> convertToTaxCategories(@Nonnull final InvoiceType aInvoice) {
+    var taxCategories = new HashMap<String, TaxCategory>();
+    var taxTotal  = BigDecimal.ZERO;
+    for(var taxCategory : aInvoice.getTaxTotal()) {
+      taxCategory.getTaxAmountValue();
+      taxTotal = taxTotal.add(taxCategory.getTaxAmountValue());
+
+      for(var subTaxCategory : taxCategory.getTaxSubtotal()) {
+        var taxScheme = subTaxCategory.getTaxCategory().getTaxScheme().getIDValue();
+        var taxPercent = subTaxCategory.getTaxCategory().getPercentValue();
+        var taxTypeCode = subTaxCategory.getTaxCategory().getIDValue();
+        var key = taxScheme+taxPercent+taxTypeCode;
+
+        if(taxCategories.containsKey(key)) {
+          var taxCat = taxCategories.get(key);
+          taxCat.taxAmountQuotient = taxCat.taxAmountQuotient.add(subTaxCategory.getTaxAmountValue());
+          taxCategories.put(key, taxCat);
+        }
+        else {
+          var taxCat = new TaxCategory();
+          taxCat.taxAmountQuotient = subTaxCategory.getTaxAmountValue();
+          taxCat.taxScheme = taxScheme;
+          taxCat.taxPercentage = taxPercent;
+          taxCat.typeCode = taxTypeCode;
+          taxCategories.put(key, taxCat);
+        }
+      }
+    }
+    return new Tuple2<>(taxCategories, taxTotal);
   }
 
   @Nullable

@@ -17,8 +17,11 @@
  */
 package com.helger.en16931.ubl2cii;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Consumer;
@@ -182,6 +185,22 @@ public abstract class AbstractToCIID16BConverter {
     if (aUBLAddress.getCountry() != null)
       ifNotEmpty(ret::setCountryID, aUBLAddress.getCountry().getIdentificationCodeValue());
     return ret;
+  }
+
+  @Nonnull
+  protected static AmountType sumAmountType(@Nullable final AmountType aA, @Nullable final AmountType aB) {
+    if(aA == null && aB == null) return new AmountType (new BigDecimal(0));
+    if (aA == null) return aB;
+    if (aB == null) return aA;
+
+    return new AmountType(aA.getValue().add(aB.getValue()));
+  }
+
+  @Nonnull
+  protected static List<AmountType> sumAmountTypeList(@Nullable final List<AmountType> aA) {
+    if (aA == null) return null;
+    var sum = aA.stream().reduce(new AmountType(new BigDecimal(0)), AbstractToCIID16BConverter::sumAmountType);
+    return List.of(sum);
   }
 
   @Nullable
